@@ -2,16 +2,18 @@ from __future__ import division
 
 import re
 import datetime
-#from tools import persist
+from tools import persist
 
 TIMESTRS = ['secs', 'mins', 'hrs', 'days']
 TIMESTR_TIMES = dict(zip(TIMESTRS, [1, 60, 60*60, 24*60*60]))
+
+# I think this is a more elegant way of creating a dictionary
+# of 'abbreviation': 'meaning' pairs, but who knows?
 EQUIV_TIMESTRS = {'secs': ['s', 'sec', 'secs', 'seconds', 'second'],
                   'mins': ['m', 'min', 'mins', 'minutes', 'minute'],
                   'hrs':  ['h', 'hr', 'hrs', 'hours', 'hour'],
                   'days': ['d', 'day', 'days']}
-
-TIMESTR_DICT = {}
+TIMESTR_DICT = dict()
 for category, items in EQUIV_TIMESTRS.iteritems():
     for val in items:
         TIMESTR_DICT[val] = category
@@ -31,46 +33,79 @@ def get_messages(string):
     return times, messages
 
 def prettify_time(t):
-    ss = t.total_seconds()
-    mm, ss = ss / 60, ss % 60
-    hh, mm = mm / 60, mm % 60
-    dd, hh = hh / 60, hh % 60
+    ss = int(round(t.total_seconds()))
+    mm, ss = divmod(ss, 60)
+    hh, mm = divmod(mm, 60)
+    dd, hh = divmod(hh, 24)
     
     ss = int(ss)
     mm = int(mm)
     hh = int(hh)
     dd = int(dd)
-    if dd == 0 and hh == 0 and mm == 0:
-        return "{} second(s)".format(ss)
-    elif dd == 0 and hh == 0:
-        return "{} minute(s) and {} second(s)".format(mm, ss)
-    elif dd == 0:
-        return "{} hour(s), {} minute(s) and {} second(s)".format(hh, mm, ss)
-    else:
-        return "{} day(s), {} minute(s) and {} second(s)".format(dd, hh, mm, ss)
+    
+    parts = []
+    
+    if ss:
+        msg = "{ss} seconds" if ss > 1 else "{ss} second"
+        parts.append(msg)
+    if mm:
+        msg = "{mm} minutes" if mm > 1 else "{mm} minute"
+        parts.append(msg)
+    if hh:
+        msg = "{hh} hours" if hh > 1 else "{hh} hour"
+        parts.append(msg)
+    if dd:
+        msg = "{dd} days" if dd > 1 else "{dd} day"
+        parts.append(msg)
+    
+    # The Oxford Comma joining algorithm below is a slightly reduced
+    # version of Kenneth Reitz' clint.eng.join algorithm.
+    # (https://github.com/kennethreitz/clint/blob/develop/clint/eng.py)
+    pos = len(parts)
+    new_parts = []
+    for part in parts[::-1]:
+        pos -= 1
+        new_parts.append(part)
+        if pos == 1:
+            if len(parts) == 2:
+                new_parts.append(' ')
+            else:
+                new_parts.append(', ')
+            new_parts.append('and ')
+        elif pos is not 0:
+            new_parts.append(', ')
+    return ''.join(new_parts).format(**locals()) # dangerous, but probably okay.
 
 ## in
 
 def do_in(keight, event):
-    try:
+    try: # Let's try and get the time and message out with regex.
         times, message = get_messages(event.message[4:].strip())
     except TypeError:
-        response = "{}: I'm afraid that didn't make much sense to me."
-        return response.format(event.source) + " Try again?"
-
-    secs = sum(TIMESTR_TIMES[j] * int(i) for i,j in times)
-    print secs
-    event.alert_message = message
+        try: # Maybe the input was just a number?
+            secs = float(event.message[4:].strip())
+        except ValueError: # Give up and shut up.
+            response = "{}: I'm afraid that didn't make much sense to me."
+            return response.format(event.source) + " Try again?"
+        else:
+            event.alert_message = ''
+    else:
+        secs = sum(TIMESTR_TIMES[j] * int(i) for i,j in times)
+        event.alert_message = message
+    
     now = datetime.datetime.now()
     delta = datetime.timedelta(seconds=secs)
     then = now + delta
     keight.add_time_event(then, 'clock_alert', event)
-    return "Will remind in {} seconds".format(secs)
+    return "I'll remind you about that in {}.".format(prettify_time(delta))
     
 
 def clock_alert(keight, time, func_name, arg):
     msg = arg.alert_message
-    line = "{}: {}".format(arg.source, msg)
+    if msg.strip() is not '':
+        line = "{}: {}".format(arg.source, msg)
+    else:
+        line = "{}!".format(arg.source)
     keight.send_message(arg.target, line)
     
 ## tell/note
