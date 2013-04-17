@@ -18,13 +18,15 @@ for category, items in EQUIV_TIMESTRS.iteritems():
     for val in items:
         TIMESTR_DICT[val] = category
 
-ACCEPT = sorted(TIMESTR_DICT, key=len, reverse=True)
-
+ACCEPT = sorted(TIMESTR_DICT, key=len, reverse=True) # Ensures Regex matches
+                                                     # in the correct order.
+                                                     
 SPLITSTRING = r'((?:\d+\s*(?:{})\s*)+)\s*(.*)'
 RE_SPLITSTRING = re.compile(SPLITSTRING.format('|'.join(ACCEPT)))
 RE_GETTIMES = re.compile(r'(\d+)\s*({})\s*'.format('|'.join(ACCEPT)))
 
 def get_messages(string):
+    # TODO: support decimal/float time periods (eg: 3.5secs, 4.2 minutes)
     try:
         times, messages = RE_SPLITSTRING.search(string).groups()
     except AttributeError:
