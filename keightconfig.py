@@ -1,13 +1,13 @@
 ## Connection Settings
-nick = 'K-Eight'
-host = 'irc.esper.net'
+nick = 
+host = 
 port = 6667
 # password = 
-channels = ['#johztestingchannel', '#Iseori', '#udl', '#udl-cmd']
-owner = 'Johz'
+channels = ['#channel1']
+owner = 
 
 ## Admin Settings
-admins = [owner, 'Johz', 'Solm', 'Ravania']
+admins = [owner]
 
 ## Logging Settings
 logging = True
