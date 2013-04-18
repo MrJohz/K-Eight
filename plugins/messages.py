@@ -81,6 +81,8 @@ def prettify_time(t):
 ## in
 
 def do_in(keight, event):
+    """Sets a timed message.
+EXAMPLE:  .in 5hrs 3mins message"""
     try: # Let's try and get the time and message out with regex.
         times, message = get_messages(event.message[4:].strip())
     except TypeError:

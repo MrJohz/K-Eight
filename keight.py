@@ -293,6 +293,9 @@ class Keight(bot.SimpleBot):
         if event.message and event.message[0] == keightconfig.command_key:
             message = event.message.split()
             command = message[0][1:]
+            args = event.message[len(command) + 1:].strip()
+            event.command = command
+            event.args = args
             
             retFunc = self.commands.get(command, blankFunc)
             conditions = (not retFunc is blankFunc,

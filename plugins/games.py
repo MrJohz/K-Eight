@@ -1,8 +1,12 @@
 ## SETUP
 
 import random
+from operator import add, sub
+import re
 
 ## ROLL (.roll)
+
+DICE_REGEX = re.compile('^(\d+)?\s*d\s*(\d+)(?:\s*(\+|-)\s*(\d+))?$')
 
 def do_roll(keight, event):
     """Rolls dice.
@@ -10,49 +14,37 @@ USAGE: .roll
 ==> Rolls one six-sided dice
 USAGE: .roll [<m>=1]d<n>
 ==> Rolls <m> <n>-sided dice (dnd notation)"""
-    msg = event.message[5:].strip().lower()
+    msg = event.args.lower()
     if not msg:
         return "{}: You rolled {}".format(event.source, random.randint(1,6))
-    elif not 'd' in msg:
-        ret = "{}: That wasn't a D&D roll.  Try .roll 1d6 for a normal dice."
-        return ret.format(event.source)
-    parts = [i for i in msg.split('d') if i.strip()]
-    if len(parts) == 1:
-        noDice = 1
-    elif len(parts) == 2:
-        try:
-            noDice = int(parts[0])
-        except IndexError:
-            ret = "{}: That wasn't a D&D roll.  Try .roll or .roll 1d6 for a normal dice."
-            return ret.format(event.source)
+    match = DICE_REGEX.match(msg.strip())
+    if match is not None:
+        dice_no, sides, op, mod = match.groups()      # Un-group the match
+        sides = int(sides)
+        dice_no = 1 if dice_no is None else int(dice_no)  # Set optional params
+        mod = 0 if mod is None else int(mod)              # to default vals
+        op = add if op == '+' else sub
+        
+        if dice_no > 1000: # You cannot be serious.
+            return ("There are way too many dice there for me to keep "
+                    "track of.  What do you think I am, a robot?")
+        
+        roll_list = []
+        for i in range(dice_no):
+            roll_list.append(random.randint(1,sides))
+        
+        total = op(sum(roll_list), mod)
+        ret = "{}: You rolled {}".format(event.source, total)
+        if 1 < dice_no < 15:
+            ret += " (rolls: {})".format(' + '.join(roll_list))
+        return ret
     else:
-        ret = "{}: That wasn't a D&D roll.  Try .roll or .roll 1d6 for a normal dice."
+        ret = "{}: I didn't understand any of that.  Come again?"
         return ret.format(event.source)
-
-    try:
-        noNumbers = int(parts[-1])
-    except:
-        ret = "{}: That wasn't a D&D roll.  Try .roll or .roll 1d6 for a normal dice."
-        return ret.format(event.source)
-    
-    if noDice > 99 or noNumbers > 99:
-        ret = "{}: Don't you come in here trying to confuse me with your big numbers..."
-        return ret.format(event.source)
-    
-
-    rolls = []
-    for i in xrange(noDice):
-        rolls.append(random.randint(1,noNumbers))
-
-    if 1 < len(rolls) <= 9:
-        strRolls = ' + '.join(str(i) for i in rolls)
-        ret = "{}: You rolled {} (rolls: {})"
-        return ret.format(event.source, sum(rolls), strRolls)
-
-    else:
-        return "{}: You rolled {}".format(event.source, sum(rolls))
 
 def do_decide(keight, event):
+    """Makes hard decisions easy.
+USAGE: .decide <option 1>|<option 2>|<option 3>|etc."""
     msg = event.message[8:].strip()
     if '|' in msg:
         msg = [i.strip() for i in msg.split('|')]
@@ -62,14 +54,16 @@ def do_decide(keight, event):
         else:
             ret = '{}: {}'.format(event.source, random.choice(msg))
     else:
-        ret = "I'm sorry {}, but you haven't given me anything to choose from there."
+        ret  = "I'm sorry {}, but you haven't given me anything to choose"
+        ret += "from there."
         ret = ret.format(event.source)
     return ret
 
 do_choice = do_decide
 
-#def do_rr(keight, event):
-#    return ("You know what?  Shut up.  Stop with your damn spamming, and just shut up.")
+def do_rr(keight, event):
+    return ("You know what?  Shut up.  Stop with your damn spamming, and "
+            "just shut up.")
 
 
 
