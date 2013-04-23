@@ -5,11 +5,10 @@ import sys
 import pprint
 import threading, Queue
 import datetime
-
 from collections import Counter
 
 from ircutils import bot, events, format
-from tools import persist
+from tools import persist, yaml
 
 import keightconfig
 

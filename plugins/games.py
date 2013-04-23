@@ -34,6 +34,7 @@ USAGE: .roll [<m>=1]d<n>
             roll_list.append(random.randint(1,sides))
         
         total = op(sum(roll_list), mod)
+        roll_list = map(str, roll_list)
         ret = "{}: You rolled {}".format(event.source, total)
         if 1 < dice_no < 15:
             ret += " (rolls: {})".format(' + '.join(roll_list))
