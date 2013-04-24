@@ -115,68 +115,44 @@ def clock_alert(keight, time, func_name, arg):
 ## tell/note
 
 def do_tell(keight, event):
-    msg = event.message[6:].strip()
+    msg = event.args
     try:
-        sendee, message = msg.split(' ', 1)
+        sendee, message = msg.split(None, 1)
     except ValueError:
         return "There's no message there."
     
-    if sendee[-1] != '*':
-        try:
-            d = keight.plugin_namespace.messages.get(sendee.lower(), [])
-            d.append((event.source, message, datetime.datetime.now()))
-            keight.plugin_namespace.messages[sendee.lower()] = d
-        except AttributeError: # Clearly messages hasn't been defined yet.
-            keight.plugin_namespace.messages = persist.open('messages.db')
-            d = keight.plugin_namespace.messages.get(sendee.lower(), [])
-            d.append((event.source, message, datetime.datetime.now()))
-            keight.plugin_namespace.messages[sendee.lower()] = d
-    else:
-        try:
-            d = keight.plugin_namespace.star_messages.get(sendee.lower(), [])
-            d.append((event.source, message, datetime.datetime.now()))
-            keight.plugin_namespace.star_messages[sendee.lower()] = d
-        except AttributeError:
-            keight.plugin_namespace.star_messages = persist.open('star_messages.db')
-            d = keight.plugin_namespace.star_messages.get(sendee.lower(), [])
-            d.append((event.source, message, datetime.datetime.now()))
-            keight.plugin_namespace.star_messages[sendee.lower()] = d
+    # Some people like to quote their messages, but we like to do that
+    # for them, so let's get rid of extranious quotes.
+    if (message.startswith('"') and message.endswith('"')) or \
+                (message.startswith("'") and message.endswith("'")):
+        message = message[1:-1]
     
-    keight.plugin_namespace.messages.sync()
-    return '{}: I\'ll tell {} "{}" when I next see them.'.format(event.source, sendee, message)
+    m_dict = {'message': message,
+              'sender':  event.source,
+              'time':    datetime.datetime.now()}
+    
+    message_db = persist.PersistentDict('messages.db')
+    message_list = message_db.get(sendee.lower())
+    message_list = list() if message_list is None else message_list
+    message_list.append(m_dict)
+    message_db[sendee.lower()] = message_list
+    
+    return "{}: I\'ll tell {} that when I next see them.".format(event.source, sendee, message)
 
 def re_any(keight, event):
     retMes = []
-    try:
-        messages = keight.plugin_namespace.messages.get(event.source.lower().strip(), [])
-        keight.plugin_namespace.messages[event.source.lower()] = []
-        del keight.plugin_namespace.messages[event.source.lower().strip()]
-    except AttributeError:
-        return
+    message_db = persist.PersistentDict('messages.db')
+    messages = message_db.get(event.source.lower().strip(), [])
+    message_db[event.source.lower().strip()] = []
     if messages:
         now = datetime.datetime.now()
-        for sender, mess, time in messages:
-            diff = now - time
+        for message in messages:
+            diff = now - message['time']
             timestr = prettify_time(diff) + ' ago'
-            m = "{}: {} left you this message {}. \"{}\""
-            m = m.format(event.source, sender, timestr, mess)
+            m = '{}: {} left you this message {}: "{}"'
+            m = m.format(event.source, message['sender'],
+                         timestr, message['message'])
             retMes.append(m)
-    
-    messages = []
-    try:
-        for i, j in keight.plugin_namespace.star_messages.items():
-            if event.source.startswith(i[:-1]):
-                messages.extend(j)
-    except AttributeError:
-        return
-    if messages:
-        for sender, mess, time in messages:
-            diff = now - time
-            timestr = prettify_time(diff) + 'ago'
-            m = "{}: {} left you this message {}. \"{}\""
-            m = m.format(event.source, sender, timestr, mess)
-            retMes.append(m)
-            
     if retMes:
         return retMes
 
