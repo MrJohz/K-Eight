@@ -5,11 +5,10 @@ import sys
 import pprint
 import threading, Queue
 import datetime
-
 from collections import Counter
 
 from ircutils import bot, events, format
-from tools import persist
+from tools import yaml
 
 import keightconfig
 
@@ -78,20 +77,6 @@ def get_plugins():
 def load_plugin(plugin):
     return imp.load_module(plugin['name'], *plugin['info'])
 
-class PersistentNamespace(object):
-    """A blank, persistent namespace"""
-    def __init__(self, filename):
-        self.filename = filename
-        self.__dict__.update(persist.open(filename, 'r'))
-        
-    def sync(self):
-        d = persist.open(self.filename)
-        d.update(self.__dict__)
-        d.close()
-
-class BlankNamespace(object):
-    pass
-
 class DoTimingThread(threading.Thread):
     def __init__(self, keight, queue):
         threading.Thread.__init__(self)
@@ -143,8 +128,6 @@ class Keight(bot.SimpleBot):
         self.connect(keightconfig.host, port=port, password=password)
         logging.info('Joined irc server: {}'.format(keightconfig.host))
         self.user_dict = {}
-        self.plugin_namespace = BlankNamespace()
-        self.plugin_namespace.persist = PersistentNamespace('keight.db')
         self.commands = {}
         self.clock_commands = {}
         self.re_commands = []
@@ -160,7 +143,6 @@ class Keight(bot.SimpleBot):
         bot.SimpleBot.start(self)
     
     def disconnect(self, message=None):
-        self.plugin_namespace.persist.sync()
         bot.SimpleBot.disconnect(self, message)
 
     def _set_commands(self, module=None):
@@ -190,7 +172,7 @@ class Keight(bot.SimpleBot):
                     try:
                         plugin = load_plugin(i)
                         for j, k in vars(plugin).items():
-                            if callable(k) and j[:3]:
+                            if callable(k) and j[:3] == 'do_':
                                 self.commands[j[3:]] = k
                             elif callable(k) and j[:6] == 'clock_':
                                 self.clock_commands[j] = k
@@ -324,15 +306,12 @@ class Keight(bot.SimpleBot):
     def on_channel_message(self, event):
         event.private = False
         self.do_command(event)
-        #self.command_threads.append(DoCommandThread(self, event))
-        #self.command_threads[-1].start()
                     
     def on_whois(self, event):
         self.user_dict[event.nick.lower()] = event
 
     def on_update_list_event(self, event):
         if event.command == "PING":
-            self.plugin_namespace.persist.sync()
             self.check_all()
         elif event.command == "MODE":
             if event.target in self.channels:
@@ -352,8 +331,6 @@ class Keight(bot.SimpleBot):
     def on_private_message(self, event):
         event.private = True
         self.do_command(event)
-        #self.command_threads.append(DoCommandThread(self, event))
-        #self.command_threads[-1].start()
 
     def on_any(self, event):
         #pprint.pprint(vars(event))   # debugging line
