@@ -34,3 +34,9 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# YAML files shouldn't really be around at the moment
+*.yaml
+
+# And the .db files in the persistence folder
+persistence/*
