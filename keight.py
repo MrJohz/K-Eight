@@ -370,7 +370,7 @@ if __name__ == "__main__":
         print open("VERSION.txt", 'r').read()
         sys.exit(1)
     if 'new_config' in opts:
-        with open('config.yaml', 'w') as conf_file:
+        with open('config.yml', 'w') as conf_file:
             conf_file.write(config.SAMPLE_CONFIG)
         sys.exit(1)
     if 'help' in opts or 'h' in opts:
@@ -378,10 +378,11 @@ if __name__ == "__main__":
         sys.exit(1)
     
     try:
-        keight_config = config.ConfigParser(open('config.yaml', 'r'))
+        keight_config = config.ConfigParser(open('config.yml', 'r'))
     except IOError:
-        # file doesn't exist - need to make it from default.
-        pass
+        with open('config.yml', 'w') as conf_file:
+            conf_file.write(config.SAMPLE_CONFIG)
+        sys.exit(1)
     except config.InvalidConfigError as err:
         print "Invalid config file: {0!s}".format(err)
         sys.exit(1)

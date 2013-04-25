@@ -36,7 +36,7 @@ nosetests.xml
 .pydevproject
 
 # Don't include the config file.
-config.yaml
+config.yml
 
 # And the .db files in the persistence folder
 persistence/*
