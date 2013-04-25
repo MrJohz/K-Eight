@@ -15,7 +15,7 @@ LEVELS = {"NOTSET":   00,
           "ERROR":    40,
           "CRITICAL": 50}
 
-class Out(object):
+class Writer(object):
     def __init__(self, output, tags=None, level=DEFAULT_LEVEL,
                  format=DEFAULT_FORMAT, date_format=DEFAULT_DATE_FORMAT):
         self.output = output
@@ -35,10 +35,30 @@ class Out(object):
         self.write(line)
     
     def _pre_write(self, message):
-        args = message.__dict__
+        args = message.args()
         args['datetime'] = args['datetime'].strftime(self.date_format)
         line = self.format.format(**args)
         return line
+
+## IRC ERRORS:
+class NoHandlerError(NotImplementedError):
+    pass
+
+class IRCWriter(Writer):
+    def __init__(self, output, tags=None, level=DEFAULT_LEVEL,
+                 format=DEFAULT_FORMAT, date_format=DEFAULT_DATE_FORMAT,
+                 irc_handler=None):
+        Writer.__init__(self, output, tags, level, format, date_format)
+        self.irc_handler = None
+    
+    def write(self, line):
+        if self.irc_handler is None:
+            raise NoHandlerError
+        
+        self.irc_handler.send_message(self.output, message)
+    
+    def add_irc_handler(self, handler):
+        self.irc_handler = handler
 
 class Message(object):
     def __init__(self, message, level=DEFAULT_LEVEL,
@@ -50,13 +70,15 @@ class Message(object):
         self.datetime = datetime.datetime.now()
     
     def args(self):
-        return self.__dict__
+        new_dict = {}
+        new_dict.update(self.__dict__)
+        return new_dict
 
-class In(object):
+class Logger(object):
     
     instances = {}
     
-    def __new__(cls, name="genericlumberjack", *args, **kwargs):
+    def __new__(cls, name="k-eight", *args, **kwargs):
         if name in cls.instances:
             return cls.instances[name]
         else:
@@ -65,22 +87,26 @@ class In(object):
             cls.instances[name] = new
             return new
     
-    def __init__(self, name="genericlumberjack", loggers=None):
-        self.loggers = [] if loggers is None else loggers
+    def __init__(self, name="k-eight", writers=None):
+        if not hasattr(self, 'writers'):
+            self.writers = [] if writers is None else writers
     
     def log(self, message, level=DEFAULT_LEVEL, tags=None, *args, **kwargs):
         message = Message(message, level, tags, *args, **kwargs)
         if tags is None:
-            for logger in self.loggers:
-                if '*' in logger.tags:
-                    if logger.int_level <= LEVELS.get(message.level, 0):
-                        logger._do_write(message)
-        tags = []
+            for writer in self.writers:
+                if '*' in writer.tags:
+                    if writer.int_level <= LEVELS.get(message.level, 0):
+                        writer._do_write(message)
+            tags = []
         for tag in tags:
-            for logger in self.loggers:
-                if tag in logger.tags or '*' in logger.tags:
-                    if logger.int_level <= LEVELS.get(message.level, 0):
-                        logger._do_write(message)
+            for writer in self.writers:
+                if tag in writer.tags or '*' in writer.tags:
+                    if writer.int_level <= LEVELS.get(message.level, 0):
+                        writer._do_write(message)
     
-    def add_loggers(self, *loggers):
-        self.loggers.extend(loggers)
+    def add_writers(self, *writers):
+        self.writers.extend(writers)
+    
+    def add_writer(self, writer):
+        self.writers.append(writer)

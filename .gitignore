@@ -34,3 +34,12 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# Don't include the config file.
+config.yaml
+
+# And the .db files in the persistence folder
+persistence/*
+
+# And anything in the log folder
+logs/*
