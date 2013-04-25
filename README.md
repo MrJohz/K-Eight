@@ -11,7 +11,11 @@ Unzip this folder into a directory, and edit the keightconfig.py file.
 
 ## Running
 
-`python keight.py`
+1. Create your configuration file:
+   - `python keight.py --new_config`
+2. Modify the newly-created `config.yml` file to suit your requirements.
+3. Go for it.
+   - `python keight.py`
 
 ## Requirements
 
