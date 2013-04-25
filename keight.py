@@ -1,3 +1,25 @@
+"""
+K-Eight - an extendable python IRC bot by Johz.
+
+To run for the first time, do "{name} --new_config"
+
+USAGE:
+    {name} [--options] [#channel1 [#channel2 [...]]]
+
+OPTIONS:
+    (Required arguments for long-form options are required
+    for short-form options as well.  Also note that the
+    options-parsing system isn't very intelligent, so be explicit.)
+    
+    -h, --help:           Displays this message and exits.
+    --version             Displays version and exits.
+    --new_config          Creates a new configuration file and exits.
+    -n, --nick=NICK       Runs {name} with nick NICK. (Ignores config file)
+    -s, --host=HOST       Runs {name} with host HOST. (Ignores config file)
+    -p, --port=PORT       Runs {name} with port PORT. (Ignores config file)
+    --pword=PASS          Runs {name} with password PASS. (Ignores config file)
+"""
+
 import re
 import os
 import imp
@@ -5,12 +27,12 @@ import sys
 import pprint
 import threading, Queue
 import datetime
+
 from collections import Counter
 
 from ircutils import bot, events, format
-from tools import yaml
-
-import keightconfig
+from tools import persist, config, log
+from tools.clopt import clopt
 
 DEF_PLUGIN_FOLDER = './plugins'
 
@@ -20,11 +42,6 @@ class Error(Exception):
 
 class MissingConfigError(Error, ValueError):
     pass
-
-## Fake Logger - Ensures that logging handlers don't raise errors.
-class FakeLogger(object):
-    _fakeHandler = lambda *args, **kwargs: None
-    debug = info = warning = error = critical = _fakeHandler
 
 ## Some custom handlers
 class UpdateListsHandler(events.ReplyListener):
@@ -61,8 +78,8 @@ def isiterable(obj):
     except TypeError:
         return False
 
-def get_plugins():
-    plugin_folder = getattr(keightconfig, 'plugin_folder', DEF_PLUGIN_FOLDER)
+def get_plugins(plugin_folder=DEF_PLUGIN_FOLDER):
+    plugin_folder = DEF_PLUGIN_FOLDER if plugin_folder is None else plugin_folder
     plugins = []
     possiblePlugins = os.listdir(plugin_folder)
     for item in possiblePlugins:
@@ -118,15 +135,36 @@ class DoTimingThread(threading.Thread):
 
 ## The Bot
 class Keight(bot.SimpleBot):
-    def __init__(self):
-        bot.SimpleBot.__init__(self, nick=keightconfig.nick)
-        self.nick = keightconfig.nick
-        self.owner = keightconfig.owner
-        self.admins = getattr(keightconfig, 'admins', [keightconfig.owner])
-        port = getattr(keightconfig, 'port', None)
-        password = getattr(keightconfig, 'password', None)
-        self.connect(keightconfig.host, port=port, password=password)
-        logging.info('Joined irc server: {}'.format(keightconfig.host))
+    def __init__(self, config, opts=None, args=None):
+        self.opts = dict() if opts is None else opts
+        opts = self.opts
+        self.args = tuple() if args is None else args
+        args = self.args
+        if 'nick' in opts:
+            nick = opts['nick']
+        elif 'n' in opts:
+            nick = opts['n']
+        else:
+            nick = config.connection['nick']
+        bot.SimpleBot.__init__(self, nick)
+        self.nick = nick
+        self.config = config
+        self.owner = config.admin['owner']
+        self.admins = config.admin.get('admins', [self.owner])
+        if 'port' in opts:
+            port = opts['port']
+        elif 'p' in opts:
+            port = opts['p']
+        else:
+            port = config.connection['port']
+        pword = opts['pword'] if 'pword' in opts else config.connection['password']
+        if 'host' in opts:
+            host = opts['host']
+        elif 'h' in opts:
+            host = opts['h']
+        else:
+            host = config.connection['host']
+        self.connect(host, port=port, password=pword)
         self.user_dict = {}
         self.commands = {}
         self.clock_commands = {}
@@ -150,7 +188,7 @@ class Keight(bot.SimpleBot):
             self.commands = {}
             self.clock_commands = {}
             self.re_commands = []
-            for i in get_plugins():
+            for i in get_plugins(self.config.admin.get('plugins_folder')):
                 try:
                     plugin = load_plugin(i)
                     for j, k in vars(plugin).items():
@@ -160,11 +198,8 @@ class Keight(bot.SimpleBot):
                             self.clock_commands[j] = k
                         elif callable(k) and j[:3] == 're_':
                             self.re_commands.append((opt_compile(k.expr), k))
-                    logging.info("Loaded {}".format(i['name']))
                 except ImportError as exc:
-                    text = "Failed to load module {}".format(i['name'])
-                    text += ": {}".format(exc)
-                    logging.warning(text)
+                    pass
             return True
         else:
             for i in get_plugins():
@@ -178,27 +213,18 @@ class Keight(bot.SimpleBot):
                                 self.clock_commands[j] = k
                             elif callable(k) and j[:3] == 're_':
                                 self.re_commands.append((opt_compile(k.expr), k))
-                        logging.info("Loaded {}".format(i['name']))
                         return module
                     except ImportError as exc:
-                        text = "Failed to load module {}".format(i['name'])
-                        text += ": {}".format(exc)
-                        logging.warning(text)
                         return None
-            text = "Failed to load module {}".format(module)
-            text += ": Module does not exist."
-            logging.warning(text)
             return None
 
     def check_all(self):
-        logging.debug('Checking all users')
         self.user_dict = {}
         for channel in self.channels:
             for user in self.channels[channel].user_list:
                 self.execute('WHOIS', user)
 
     def check_only(self, user):
-        logging.debug('Checking user {}'.format(user))
         self.execute('WHOIS', user)
 
     def is_identified(self, user):
@@ -218,13 +244,13 @@ class Keight(bot.SimpleBot):
             return None
 
     def on_welcome(self, event):
-        if isinstance(keightconfig.channels, list):
-            for channel in keightconfig.channels:
-                self.join(channel)
-                logging.debug('Joined channel {}'.format(channel))
-        elif isinstance(keightconfig.channels, basestring):
-            self.join(keightconfig.channels)
-            logging.debug('Joined channel {}'.format(keightconfig.channels))
+        chans = self.config.connection.get('channels')
+        chans = list() if chans is None else chans
+        chans.extend(self.args)
+        for channel in chans:
+            if not channel.startswith('#'):
+                channel = '#' + channel
+            self.join(channel)
 
     def _send_linebr_message(self, target, message):
         message = message.split('\n')
@@ -248,6 +274,7 @@ class Keight(bot.SimpleBot):
             print retVal
 
     def do_command(self, event):
+        command_key = self.config.admin.get('command_key', '.')
         if event.private:
             target = event.source
         else:
@@ -272,7 +299,7 @@ class Keight(bot.SimpleBot):
             else:
                 pass
         
-        if event.message and event.message[0] == keightconfig.command_key:
+        if event.message and event.message[0] == command_key:
             message = event.message.split()
             command = message[0][1:]
             args = event.message[len(command) + 1:].strip()
@@ -281,7 +308,7 @@ class Keight(bot.SimpleBot):
             
             retFunc = self.commands.get(command, blankFunc)
             conditions = (not retFunc is blankFunc,
-                          target not in getattr(keightconfig, 'secretchannels', []),
+                          target not in self.config.admin.get('secretchannels', []),
                           not getattr(retFunc, 'private', False))
             if all(conditions):
                 self.command_count[command] += 1
@@ -338,30 +365,28 @@ class Keight(bot.SimpleBot):
         pass
             
 if __name__ == "__main__":
-    for param in ['nick', 'host', 'channels', 'owner']:
-        if not getattr(keightconfig, param, None):
-            raise MissingConfigError('Parameter %s not in config. '
-                                     'Please check installation '
-                                     'instructions to ensure your '
-                                     'config file is correct.' % param)
-
-    if not hasattr(keightconfig, 'command_key'):
-        keightconfig.command_key = '.'
-
-    if getattr(keightconfig, 'logging', True):
-        import logging
-        loggingConf = {}
-        for i in ['filename', 'format', 'filemode',
-                  'datefmt', 'stream']:
-            if hasattr(keightconfig, i):
-                loggingConf[i] = getattr(keightconfig, i)
-        loglevel = getattr(keightconfig, 'level', 'info')
-        loggingConf['level'] = getattr(logging, loglevel.upper(), logging.INFO)
-        logging.basicConfig(**loggingConf)
-    else:
-        logging = FakeLogger()
-        
-    keight = Keight()
+    opts, args = clopt(' '.join(sys.argv[1:]))
+    if "version" in opts:                     # version command
+        print open("VERSION.txt", 'r').read()
+        sys.exit(1)
+    if 'new_config' in opts:
+        with open('config.yaml', 'w') as conf_file:
+            conf_file.write(config.SAMPLE_CONFIG)
+        sys.exit(1)
+    if 'help' in opts or 'h' in opts:
+        print __doc__.format(name=sys.argv[0]).strip()
+        sys.exit(1)
+    
+    try:
+        keight_config = config.ConfigParser(open('config.yaml', 'r'))
+    except IOError:
+        # file doesn't exist - need to make it from default.
+        pass
+    except config.InvalidConfigError as err:
+        print "Invalid config file: {0!s}".format(err)
+        sys.exit(1)
+    
+    keight = Keight(keight_config, opts, args)
     keight.register_listener('whois', events.WhoisReplyListener())
     keight.register_listener('update_list_event', UpdateListsHandler())
     keight.start()

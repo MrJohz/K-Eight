@@ -35,8 +35,11 @@ nosetests.xml
 .project
 .pydevproject
 
-# YAML files shouldn't really be around at the moment
-*.yaml
+# Don't include the config file.
+config.yaml
 
 # And the .db files in the persistence folder
 persistence/*
+
+# And anything in the log folder
+logs/*
