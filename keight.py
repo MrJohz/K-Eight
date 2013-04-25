@@ -136,6 +136,7 @@ class DoTimingThread(threading.Thread):
 ## The Bot
 class Keight(bot.SimpleBot):
     def __init__(self, config, opts=None, args=None):
+        self.logger = log.Logger()
         self.opts = dict() if opts is None else opts
         opts = self.opts
         self.args = tuple() if args is None else args
@@ -152,11 +153,12 @@ class Keight(bot.SimpleBot):
         self.owner = config.admin['owner']
         self.admins = config.admin.get('admins', [self.owner])
         if 'port' in opts:
-            port = opts['port']
+            port = int(opts['port'])
         elif 'p' in opts:
-            port = opts['p']
+            port = int(opts['p'])
         else:
             port = config.connection['port']
+        port = 6667 if port is None else port
         pword = opts['pword'] if 'pword' in opts else config.connection['password']
         if 'host' in opts:
             host = opts['host']
@@ -165,6 +167,8 @@ class Keight(bot.SimpleBot):
         else:
             host = config.connection['host']
         self.connect(host, port=port, password=pword)
+        self.logger.info("Connected to {host}:{port!s} as {nick}",
+                         tags=['system'], host=host, port=port, nick=nick)
         self.user_dict = {}
         self.commands = {}
         self.clock_commands = {}
@@ -174,14 +178,18 @@ class Keight(bot.SimpleBot):
         self.channel_count = Counter()
         self._set_commands()
         self._queue = Queue.Queue()
+        self.logger.debug("Initialised bot", tags=["system"])
         
     def start(self):
         self._timing_thread = DoTimingThread(self, self._queue)
         self._timing_thread.start()
+        self.logger.debug("Started timing thread", tags=['system'])
         bot.SimpleBot.start(self)
+        self.logger.info("Started main bot-loop", tags=['system'])
     
     def disconnect(self, message=None):
         bot.SimpleBot.disconnect(self, message)
+        self.logger.info("Disconnected from server", tags=['system'])
 
     def _set_commands(self, module=None):
         if not module:
@@ -223,9 +231,13 @@ class Keight(bot.SimpleBot):
         for channel in self.channels:
             for user in self.channels[channel].user_list:
                 self.execute('WHOIS', user)
+        self.logger.debug("Performed 'WHOIS' on all users",
+                          tags=['system'])
 
     def check_only(self, user):
         self.execute('WHOIS', user)
+        self.logger.debug("Performed 'WHOIS' on {user}",
+                          tags=['system'], user=user)
 
     def is_identified(self, user):
         self.check_only(user)
@@ -244,6 +256,7 @@ class Keight(bot.SimpleBot):
             return None
 
     def on_welcome(self, event):
+        self.logger.debug("Recieved welcome message.", tags=['system'])
         chans = self.config.connection.get('channels')
         chans = list() if chans is None else chans
         chans.extend(self.args)
@@ -251,6 +264,9 @@ class Keight(bot.SimpleBot):
             if not channel.startswith('#'):
                 channel = '#' + channel
             self.join(channel)
+            self.logger.debug("Joined channel {channel}", tags=['system'],
+                              channel=channel)
+                              
 
     def _send_linebr_message(self, target, message):
         message = message.split('\n')
@@ -333,6 +349,10 @@ class Keight(bot.SimpleBot):
     def on_channel_message(self, event):
         event.private = False
         self.do_command(event)
+
+    def on_private_message(self, event):
+        event.private = True
+        self.do_command(event)
                     
     def on_whois(self, event):
         self.user_dict[event.nick.lower()] = event
@@ -354,10 +374,6 @@ class Keight(bot.SimpleBot):
             self.check_only(event.target)
         else:
             self.check_only(event.source)
-
-    def on_private_message(self, event):
-        event.private = True
-        self.do_command(event)
 
     def on_any(self, event):
         #pprint.pprint(vars(event))   # debugging line

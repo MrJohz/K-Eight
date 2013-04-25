@@ -11,9 +11,10 @@ NEWLINE = '\n'
 LEVELS = {"NOTSET":   00,
           "DEBUG":    10,
           "INFO":     20,
-          "WARNING":  30,
-          "ERROR":    40,
-          "CRITICAL": 50}
+          "NOTICE":   30,
+          "WARNING":  40,
+          "ERROR":    50,
+          "CRITICAL": 60}
 
 class Writer(object):
     def __init__(self, output, tags=None, level=DEFAULT_LEVEL,
@@ -91,7 +92,7 @@ class Logger(object):
         if not hasattr(self, 'writers'):
             self.writers = [] if writers is None else writers
     
-    def log(self, message, level=DEFAULT_LEVEL, tags=None, *args, **kwargs):
+    def log(self, message, tags=None, level=DEFAULT_LEVEL, *args, **kwargs):
         message = Message(message, level, tags, *args, **kwargs)
         if tags is None:
             for writer in self.writers:
@@ -104,6 +105,24 @@ class Logger(object):
                 if tag in writer.tags or '*' in writer.tags:
                     if writer.int_level <= LEVELS.get(message.level, 0):
                         writer._do_write(message)
+    
+    def debug(self, message, tags=None, *args, **kwargs):
+        self.log(message, tags, level="DEBUG", *args, **kwargs)
+    
+    def info(self, message, tags=None, *args, **kwargs):
+        self.log(message, tags, level="INFO", *args, **kwargs)
+    
+    def notice(self, message, tags=None, *args, **kwargs):
+        self.log(message, tags, level="NOTICE", *args, **kwargs)
+    
+    def warning(self, message, tags=None, *args, **kwargs):
+        self.log(message, tags, level="WARNING", *args, **kwargs)
+    
+    def error(self, message, tags=None, *args, **kwargs):
+        self.log(message, tags, level="ERROR", *args, **kwargs)
+    
+    def critical(self, message, tags=None, *args, **kwargs):
+        self.log(message, tags, level="CRITICAL", *args, **kwargs)
     
     def add_writers(self, *writers):
         self.writers.extend(writers)

@@ -48,6 +48,10 @@ def dir_open(file_name, mode='a', buffering=-1):
 class ConfigParser(object):
     def __init__(self, file):
         self._raw_conf = yaml.load(file)
+        try:
+            file.close()
+        except AttributeError:  # Probably isn't a filetype
+            pass
         if not isinstance(self._raw_conf, dict):
             raise InvalidConfigError("No sections")
         self.connection = dict()
