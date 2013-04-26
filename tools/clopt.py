@@ -1,59 +1,36 @@
 """A very *very* simple module for dealing with command-line parsing when the
-only things you need to worry about are arguments and switches."""
+only things you need to worry about are arguments and switches.  Uses
+POSIX-esque command-line splitting, because non-POSIX-esque command-line
+splitting is silly."""
 
-import re
+import shlex
 
-FULL_RE = '''
-(
-(?:                                  ### GROUP 1
-  (?:{switches})                      # will start with an options string
-  (?:\w[\w_-]*)                       # followed by a word
-  (?:                                 # Optional group containing:
-     (?:\s*=\s*)                      #   "=" surrounded by whitespace
-     (?:[\w_-]+|\".*?\"|\'.*?\')    #   word or "quoted string"
-  )?                                  # Told you it was optional
-  (?:\s)*                             # Followed by some whitespace
-)*
-)
-\s+                                   # Followed by some whitespace
-
-(                                    ### GROUP 2
-  (?:
-     (?:[^-].*?|\".*?\"|\'.*?\')    # A word or "quoted string"
-   \s*)                               # Followed by optional whitespace
-*                                     # Repeated any number of times
-)
-'''
-
-OPT_RE = '''
-(?:{switches})                      # will start with an options string
-(\w[\w_-]*)                         # GROUP: followed by a word
-(?:                                 # Optional group containing:
-   (?:\s*=\s*)                      #   "=" surrounded by whitespace
-   (\w[\w_-]*|\".*?\"|\'.*?\')      #   GROUP: word or "quoted string"
-)?                                  # Told you it was optional
-(?:\s)*                             # Followed by some whitespace
-'''
-
-ARG_RE = re.compile('''
-([^-].*?|\".*?\"|\'.*?\')       # A word or "quoted string"
-\s+                               # Followed by optional whitespace
-''', flags=re.VERBOSE)
-
-def clopt(args, switches=None):
-    args += ' '  # to match for trailing whitespace
+def clopt(args, switches=None, preserve_all_opts=False):
     switches = ['-', '--'] if switches is None else switches
-    str_switches = '|'.join(switches)
-    match = re.match(FULL_RE.format(switches=str_switches), args, re.VERBOSE)
-    if match is None:
-        return (dict(), tuple())
-    
-    optargs = args
-    opts, args = match.groups()
-    args += ' '  # ARG_RE matches for trailing whitespace.
-    
-    SWRE = OPT_RE.format(switches=str_switches)
-    opts = {opt: arg for opt, arg in re.findall(SWRE, opts, re.VERBOSE)}
-    
-    args = tuple(ARG_RE.findall(args))
-    return opts, args
+    optargs = shlex.split(args)
+    opts = []
+    args = []
+    for opt in optargs:
+        for switch in switches:
+            if opt.startswith(switch):
+                opts.append(opt[len(switch):])
+                break
+        else:
+            args.append(opt)
+    opts_dict = []
+    for opt in opts:
+        if '=' in opt:
+            opt, optarg = opt.split('=', 1)
+            opts_dict.append((opt, arg))
+        else:
+            opts_dict.append((opt, ''))
+    args = tuple(args)
+    if not preserve_all_opts:
+        opts_dict = dict(opts_dict)
+    else:
+        opts_dict = tuple(opts_dict)
+    return opts_dict, args
+
+def verbose(args, verbose='v', switches=None):
+    opts, args = clopt(args, switches, preserve_all_opts=True)
+    return sum(len(opt[0]) for opt in opts if all(l == verbose for l in opt[0]))

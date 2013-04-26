@@ -43,19 +43,15 @@ def do_help(keight, event):
 def do_reload(keight, event):
     """Reloads a module."""
     if keight.get_account(event.source) in keight.admins:
-        message = event.message.split()
-        try:
-            arg = message[1].strip()
-        except IndexError:
-            arg = None
+        arg = event.args
         response = keight._set_commands(arg)
         if arg and response:
-            msg = 'Reloaded module {}'.format(arg)
+            msg = 'Loaded {arg} functions from module {module}'
         elif response:
-            msg = 'Reloaded all modules.'
+            msg = 'Loaded {arg} functions from all modules.'
         else:
             msg = 'Failed to load module.'
-        return msg
+        return msg.format(module=arg, arg=response)
 
 do_reload.private = True
 

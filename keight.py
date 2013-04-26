@@ -31,17 +31,8 @@ import datetime
 from collections import Counter
 
 from ircutils import bot, events, format
-from tools import persist, config, log
+from tools import persist, config, log, plugins
 from tools.clopt import clopt
-
-DEF_PLUGIN_FOLDER = './plugins'
-
-## Exceptions
-class Error(Exception):
-    pass
-
-class MissingConfigError(Error, ValueError):
-    pass
 
 ## Some custom handlers
 class UpdateListsHandler(events.ReplyListener):
@@ -77,22 +68,6 @@ def isiterable(obj):
         return True
     except TypeError:
         return False
-
-def get_plugins(plugin_folder=DEF_PLUGIN_FOLDER):
-    plugin_folder = DEF_PLUGIN_FOLDER if plugin_folder is None else plugin_folder
-    plugins = []
-    possiblePlugins = os.listdir(plugin_folder)
-    for item in possiblePlugins:
-        location = os.path.join(plugin_folder, item)
-        if not os.path.isfile(location) or not location.endswith('.py'):
-            continue
-        name = item[:-3]
-        info = imp.find_module(name, [os.path.abspath(plugin_folder)])
-        plugins.append({'name':name, 'info':info})
-    return plugins
-
-def load_plugin(plugin):
-    return imp.load_module(plugin['name'], *plugin['info'])
 
 class DoTimingThread(threading.Thread):
     def __init__(self, keight, queue):
@@ -192,47 +167,34 @@ class Keight(bot.SimpleBot):
         self.logger.info("Disconnected from server", tags=['system'])
 
     def _set_commands(self, module=None):
-        if not module:
+        p_folder = self.config.admin.get('plugins_folder')
+        if module is None:  # Need to set *all* the commands.
             self.commands = {}
             self.clock_commands = {}
             self.re_commands = []
-            for i in get_plugins(self.config.admin.get('plugins_folder')):
-                try:
-                    plugin = load_plugin(i)
-                    for j, k in vars(plugin).items():
-                        if callable(k) and j[:3] == 'do_':
-                            self.commands[j[3:]] = k
-                        elif callable(k) and j[:6] == 'clock_':
-                            self.clock_commands[j] = k
-                        elif callable(k) and j[:3] == 're_':
-                            self.re_commands.append((opt_compile(k.expr), k))
-                except ImportError as exc:
-                    pass
-            return True
-        else:
-            for i in get_plugins():
-                if i['name'] == module:
-                    try:
-                        plugin = load_plugin(i)
-                        for j, k in vars(plugin).items():
-                            if callable(k) and j[:3] == 'do_':
-                                self.commands[j[3:]] = k
-                            elif callable(k) and j[:6] == 'clock_':
-                                self.clock_commands[j] = k
-                            elif callable(k) and j[:3] == 're_':
-                                self.re_commands.append((opt_compile(k.expr), k))
-                        return module
-                    except ImportError as exc:
-                        return None
-            return None
-
+        funcs = plugins.get_funcs(p_folder, module)
+        func_no = 0
+        for name, func in funcs:
+            func_no += 1
+            if name.startswith('do_'):
+                self.commands[name[3:]] = func
+            elif name.startswith('clock_'):
+                self.clock_commands[name] = func
+            elif name.startswith('re_'):
+                self.re_commands.append((opt_compile(func.expr), func))
+            else:
+                func_no -= 1
+        if module is None:
+            self.logger.debug("Loaded {func_no} functions from all modules.",
+                              tags=['system'], func_no=func_no)
+                              
+        return func_no
+                
     def check_all(self):
         self.user_dict = {}
         for channel in self.channels:
             for user in self.channels[channel].user_list:
                 self.execute('WHOIS', user)
-        self.logger.debug("Performed 'WHOIS' on all users",
-                          tags=['system'])
 
     def check_only(self, user):
         self.execute('WHOIS', user)
