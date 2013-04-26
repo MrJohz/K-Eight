@@ -4,6 +4,8 @@ import random
 from operator import add, sub
 import re
 
+from tools import plugin
+
 ## ROLL (.roll)
 
 DICE_REGEX = re.compile('^(\d+)?\s*d\s*(\d+)(?:\s*(\+|-)\s*(\d+))?$')
@@ -66,6 +68,10 @@ def do_rr(keight, event):
     return ("You know what?  Shut up.  Stop with your damn spamming, and "
             "just shut up.")
 
+BOO_CHOICES = ('Aaaaargh!', "Wait, what was that?", 'What the *hell*?',
+               "I'm scared!", plugin.action("jumps"))
+def do_boo(keight, event):
+    return random.choice(BOO_CHOICES)
 
-
-# TODO: Bingo?  CaH.
+re_boo = lambda keight, event:do_boo(keight, event)
+re_boo.expr = "(?:\s|^|[{([])[bB][oO][oO](?:[])}!. ]|$)"

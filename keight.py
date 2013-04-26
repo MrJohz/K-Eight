@@ -11,7 +11,7 @@ OPTIONS:
     for short-form options as well.  Also note that the
     options-parsing system isn't very intelligent, so be explicit.)
     
-    -h, --help:           Displays this message and exits.
+    -h, --help            Displays this message and exits.
     --version             Displays version and exits.
     --new_config          Creates a new configuration file and exits.
     -n, --nick=NICK       Runs {name} with nick NICK. (Ignores config file)
@@ -31,8 +31,8 @@ import datetime
 from collections import Counter
 
 from ircutils import bot, events, format
-from tools import persist, config, log, plugins
-from tools.clopt import clopt
+from tools import persist, config, log
+from tools import plugin_imports as plugins
 
 ## Some custom handlers
 class UpdateListsHandler(events.ReplyListener):
@@ -128,20 +128,19 @@ class Keight(bot.SimpleBot):
         self.owner = config.admin['owner']
         self.admins = config.admin.get('admins', [self.owner])
         if 'port' in opts:
-            port = int(opts['port'])
-        elif 'p' in opts:
-            port = int(opts['p'])
+            port = int(opts['port'][-1])
         else:
             port = config.connection['port']
         port = 6667 if port is None else port
-        pword = opts['pword'] if 'pword' in opts else config.connection['password']
+        if 'pword' in opts:
+            password = int(opts['pword'][-1])
+        else:
+            password = config.connection['password']
         if 'host' in opts:
             host = opts['host']
-        elif 'h' in opts:
-            host = opts['h']
         else:
             host = config.connection['host']
-        self.connect(host, port=port, password=pword)
+        self.connect(host, port=port, password=password)
         self.logger.info("Connected to {host}:{port!s} as {nick}",
                          tags=['system'], host=host, port=port, nick=nick)
         self.user_dict = {}
@@ -159,8 +158,8 @@ class Keight(bot.SimpleBot):
         self._timing_thread = DoTimingThread(self, self._queue)
         self._timing_thread.start()
         self.logger.debug("Started timing thread", tags=['system'])
+        self.logger.debug("Starting main bot-loop", tags=['system'])
         bot.SimpleBot.start(self)
-        self.logger.info("Started main bot-loop", tags=['system'])
     
     def disconnect(self, message=None):
         bot.SimpleBot.disconnect(self, message)
@@ -187,6 +186,9 @@ class Keight(bot.SimpleBot):
         if module is None:
             self.logger.debug("Loaded {func_no} functions from all modules.",
                               tags=['system'], func_no=func_no)
+        else:
+            self.logger.debug("Loaded {func_no} functions from {module}.",
+                              tags=['system'], module=module, func_no=func_no)
                               
         return func_no
                 
@@ -221,13 +223,13 @@ class Keight(bot.SimpleBot):
         self.logger.debug("Recieved welcome message.", tags=['system'])
         chans = self.config.connection.get('channels')
         chans = list() if chans is None else chans
-        chans.extend(self.args)
+        chans.extend(self.args['channels'])
         for channel in chans:
             if not channel.startswith('#'):
                 channel = '#' + channel
             self.join(channel)
-            self.logger.debug("Joined channel {channel}", tags=['system'],
-                              channel=channel)
+            self.logger.info("Joined channel {channel}", tags=['system'],
+                             channel=channel)
                               
 
     def _send_linebr_message(self, target, message):
@@ -262,11 +264,13 @@ class Keight(bot.SimpleBot):
             self.send_message(target, event.source + '!')
         
         for regex, func in self.re_commands:
-            if regex.match(event.message):
+            if regex.search(event.message):
                 try:
                     retVal = func(self, event)
                 except Exception as e:
                     retVal = 'Oh noes!  {}: {}'.format(type(e).__name__, str(e))
+            else:
+                continue
             
             if isinstance(retVal, basestring):
                 self._send_linebr_message(target, str(retVal))
@@ -343,24 +347,31 @@ class Keight(bot.SimpleBot):
         pass
             
 if __name__ == "__main__":
-    opts, args = clopt(' '.join(sys.argv[1:]))
+    from tools import clopt
+    options = ('quiet|q', 'version', 'new_config', 'nick|n=',
+               'host|s=', 'port|p=', 'pword=', 'help|h')
+    arguments = ('channels*',)
+    try:
+        opts, args = clopt.clopt(sys.argv[1:], options, arguments)
+    except clopt.CloptError as exc:
+        sys.exit("Error: {exc}".format(exc=exc))
     if "version" in opts:                     # version command
         print open("VERSION.txt", 'r').read()
-        sys.exit(1)
+        sys.exit(0)
     if 'new_config' in opts:
         with open('config.yml', 'w') as conf_file:
             conf_file.write(config.SAMPLE_CONFIG)
-        sys.exit(1)
-    if 'help' in opts or 'h' in opts:
+        sys.exit(0)
+    if 'help' in opts:
         print __doc__.format(name=sys.argv[0]).strip()
-        sys.exit(1)
+        sys.exit(0)
     
     try:
         keight_config = config.ConfigParser(open('config.yml', 'r'))
     except IOError:
         with open('config.yml', 'w') as conf_file:
             conf_file.write(config.SAMPLE_CONFIG)
-        sys.exit(1)
+        sys.exit(0)
     except config.InvalidConfigError as err:
         print "Invalid config file: {0!s}".format(err)
         sys.exit(1)
