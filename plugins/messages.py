@@ -137,7 +137,8 @@ def do_tell(keight, event):
     message_list.append(m_dict)
     message_db[sendee.lower()] = message_list
     
-    return "{}: I\'ll tell {} that when I next see them.".format(event.source, sendee, message)
+    ret = "{source}: I'll tell {sendee} that when I next see them."
+    return ret.format(source=event.source, sendee=sendee)
 
 def re_any(keight, event):
     retMes = []
@@ -155,5 +156,47 @@ def re_any(keight, event):
             retMes.append(m)
     if retMes:
         return retMes
-
 re_any.expr = '.*'
+
+def do_onjoin(keight, event):
+    msg = event.args
+    try:
+        sendee, message = msg.split(None, 1)
+    except ValueError:
+        return "But there's no message there...?"
+        
+    # Some people like to quote their messages, but we like to do that
+    # for them, so let's get rid of extranious quotes.
+    if (message.startswith('"') and message.endswith('"')) or \
+                (message.startswith("'") and message.endswith("'")):
+        message = message[1:-1]
+    channel = (event.source if event.private else event.target)
+    m_dict = {'message': message,
+              'sender':  event.source,
+              'channel': channel,
+              'time':    datetime.datetime.now()}
+    
+    message_db = persist.PersistentDict('onjoin_messages.db')
+    message_list = message_db.get(sendee.lower())
+    message_list = list() if message_list is None else message_list
+    message_list.append(m_dict)
+    message_db[sendee.lower()] = message_list
+    
+    ret = "{source}: I'll tell {sendee} that when I next see them."
+    return ret.format(source=event.source, sendee=sendee)
+
+def cmd_join(keight, event):
+    message_db = persist.PersistentDict('onjoin_messages.db')
+    messages = message_db.get(event.source.lower().strip(), [])
+    message_db[event.source.lower().strip()] = []
+    if messages:
+        now = datetime.datetime.now()
+        for message in messages:
+            diff = now - message['time']
+            timestr = prettify_time(diff) + ' ago'
+            m = '{}: {} left you this message {}: "{}"'
+            m = m.format(event.source, message['sender'],
+                         timestr, message['message'])
+            keight.send_message(message['channel'], m)
+
+cmd_join.cmd = 'JOIN'

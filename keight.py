@@ -20,13 +20,14 @@ OPTIONS:
     --pword=PASS          Runs {name} with password PASS. (Ignores config file)
 """
 
-import re
-import os
-import imp
-import sys
-import pprint
-import threading, Queue
 import datetime
+import fnmatch
+import imp
+import os
+import pprint
+import re
+import sys
+import threading, Queue
 
 from collections import Counter
 
@@ -147,6 +148,7 @@ class Keight(bot.SimpleBot):
         self.commands = {}
         self.clock_commands = {}
         self.re_commands = []
+        self.cmd_commands = []
         self.command_count = Counter({i:0 for i in self.commands})
         self.user_count = Counter()
         self.channel_count = Counter()
@@ -171,6 +173,7 @@ class Keight(bot.SimpleBot):
             self.commands = {}
             self.clock_commands = {}
             self.re_commands = []
+            self.cmd_commands = []
         funcs = plugins.get_funcs(p_folder, module)
         func_no = 0
         for name, func in funcs:
@@ -181,6 +184,8 @@ class Keight(bot.SimpleBot):
                 self.clock_commands[name] = func
             elif name.startswith('re_'):
                 self.re_commands.append((opt_compile(func.expr), func))
+            elif name.startswith('cmd_'):
+                self.cmd_commands.append((func.cmd.upper(), func))
             else:
                 func_no -= 1
         if module is None:
@@ -342,9 +347,10 @@ class Keight(bot.SimpleBot):
             self.check_only(event.source)
 
     def on_any(self, event):
-        #pprint.pprint(vars(event))   # debugging line
-        # TODO: Add event command handler thingymagig.  It'll be cool.
-        pass
+        # pprint.pprint(vars(event))   # debugging line
+        for cmd, func in self.cmd_commands:
+            if fnmatch.fnmatch(event.command, cmd):
+                func(self, event)
             
 if __name__ == "__main__":
     from tools import clopt
