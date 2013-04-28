@@ -121,6 +121,9 @@ def do_tell(keight, event):
     except ValueError:
         return "There's no message there."
     
+    if sendee.rstrip('_') == keight.nick.rstrip('_'):
+        return "Look, if you want to tell me something, just tell it to my face."
+    
     # Some people like to quote their messages, but we like to do that
     # for them, so let's get rid of extranious quotes.
     if (message.startswith('"') and message.endswith('"')) or \
@@ -158,44 +161,8 @@ def re_any(keight, event):
     if retMes:
         return retMes
 
-def do_onjoin(keight, event):
-    msg = event.args
-    try:
-        sendee, message = msg.split(None, 1)
-    except ValueError:
-        return "But there's no message there...?"
-        
-    # Some people like to quote their messages, but we like to do that
-    # for them, so let's get rid of extranious quotes.
-    if (message.startswith('"') and message.endswith('"')) or \
-                (message.startswith("'") and message.endswith("'")):
-        message = message[1:-1]
-    channel = (event.source if event.private else event.target)
-    m_dict = {'message': message,
-              'sender':  event.source,
-              'channel': channel,
-              'time':    datetime.datetime.now()}
-    
-    message_db = persist.PersistentDict('onjoin_messages.db')
-    message_list = message_db.get(sendee.lower())
-    message_list = list() if message_list is None else message_list
-    message_list.append(m_dict)
-    message_db[sendee.lower()] = message_list
-    
-    ret = "{source}: I'll tell {sendee} that when I next see them."
-    return ret.format(source=event.source, sendee=sendee)
-
-plugin.add_cmd('JOIN')
-def cmd_join(keight, event):
-    message_db = persist.PersistentDict('onjoin_messages.db')
-    messages = message_db.get(event.source.lower().strip(), [])
-    message_db[event.source.lower().strip()] = []
-    if messages:
-        now = datetime.datetime.now()
-        for message in messages:
-            diff = now - message['time']
-            timestr = prettify_time(diff) + ' ago'
-            m = '{}: {} left you this message {}: "{}"'
-            m = m.format(event.source, message['sender'],
-                         timestr, message['message'])
-            keight.send_message(message['channel'], m)
+@plugin.add_cmd("JOIN")
+def cmd_alert_if_messages(keight, event):
+    message_db = persist.PersistentDict('messages.db')
+    if message_db.get(event.source.lower().strip()) is not None:
+        keight.send_message(event.target, event.source + '!  You\'ve got mail!')

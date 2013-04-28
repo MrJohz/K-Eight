@@ -186,6 +186,7 @@ class Keight(bot.SimpleBot):
             for i in plugins.COMMAND_NAMES:
                 self.commands[i] = dict()
             self.commands['re'] = list()
+            self.commands['cmd'] = list()
         module_config = getattr(self.config, 'modules', dict())
         funcs = plugins.get_funcs(p_folder, module, module_config)
         func_no = 0
@@ -435,9 +436,8 @@ class Keight(bot.SimpleBot):
             self.check_only(event.source)
 
     def on_any(self, event):
-        for cmd, func in self.commands['cmd'].items():
+        for cmd, func in self.commands['cmd']:
             if fnmatch.fnmatch(event.command, cmd):
-                print vars(func)
                 func(self, event)
             
 if __name__ == "__main__":
