@@ -45,6 +45,7 @@ USAGE: .roll [<m>=1]d<n>
         ret = "{}: I didn't understand any of that.  Come again?"
         return ret.format(event.source)
 
+@plugin.alias('choice')
 def do_decide(keight, event):
     """Makes hard decisions easy.
 USAGE: .decide <option 1>|<option 2>|<option 3>|etc."""
@@ -62,16 +63,13 @@ USAGE: .decide <option 1>|<option 2>|<option 3>|etc."""
         ret = ret.format(event.source)
     return ret
 
-do_choice = do_decide
-
 def do_rr(keight, event):
     return ("You know what?  Shut up.  Stop with your damn spamming, and "
             "just shut up.")
 
 BOO_CHOICES = ('Aaaaargh!', "Wait, what was that?", 'What the *hell*?',
                "I'm scared!", plugin.action("jumps"))
+
+@plugin.compile_regex("(?:\s|^|[{([])boo(?:[])}!. ]|$)", re.IGNORECASE)
 def do_boo(keight, event):
     return random.choice(BOO_CHOICES)
-
-re_boo = lambda keight, event:do_boo(keight, event)
-re_boo.expr = "(?:\s|^|[{([])[bB][oO][oO](?:[])}!. ]|$)"

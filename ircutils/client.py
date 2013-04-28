@@ -5,6 +5,8 @@ inherits from :class:`SimpleClient` so it has the methods listed below.
 """
 import collections
 
+import pprint
+
 import connection
 import ctcp
 import events
@@ -98,7 +100,10 @@ class SimpleClient(object):
         primary event dispatcher.
         This replaces :func:`connection.Connection.handle_line`
         """
-        pending_events = []
+        try:
+            self._pending_events
+        except AttributeError:
+            self._pending_events = []
         # TODO: Event parsing doesn't belong here.
         
         if command in ["PRIVMSG", "NOTICE"]:
@@ -110,19 +115,21 @@ class SimpleClient(object):
                 message_data = format.filter(message_data)
             if message_data.strip() != "":
                 event.message = message_data
-                pending_events.append(event)
+                self._pending_events.append(event)
             for command, params in ctcp_requests:
                 ctcp_event = events.CTCPEvent()
                 ctcp_event.command = "CTCP_%s" % command
                 ctcp_event.params = params
                 ctcp_event.source = event.source
                 ctcp_event.target = event.target
-                pending_events.append(ctcp_event)
+                self._pending_events.append(ctcp_event)
         else:
-            pending_events.append(events.StandardEvent(prefix, command, params))
+            self._pending_events.append(events.StandardEvent(prefix, command, params))
         
-        for event in pending_events:
+        while self._pending_events:
+            event = self._pending_events.pop(0)
             self.events.dispatch(self, event)
+            
     
     
     def connect(self, host, port=None, channel=None, use_ssl=False, 

@@ -1,15 +1,13 @@
 ## SETUP
 
-import pprint
-COMMANDS = {}
+from tools import plugin
 
 ## QUIT
+@plugin.private()
 def do_quit(keight, event):
     """Quits bot from server.  Can only be performed by identified admins."""
     if keight.get_account(event.source) in keight.admins:
         keight.disconnect()
-
-do_quit.private = True
 
 ## HELP
 def do_help(keight, event):
@@ -39,7 +37,7 @@ def do_help(keight, event):
             return msg.format(command, "This command doesn't appear to have "
                                        "any documentation.")
 
-##RELOAD
+@plugin.private()
 def do_reload(keight, event):
     """Reloads a module."""
     if keight.get_account(event.source) in keight.admins:
@@ -53,10 +51,9 @@ def do_reload(keight, event):
             msg = 'Failed to load module.'
         return msg.format(module=arg, arg=response)
 
-do_reload.private = True
-
 
 ## JOIN
+@plugin.private()
 def do_join(keight, event):
     """Joins a channel.  Can only be performed by identified admins."""
     if keight.get_account(event.source) in keight.admins:
@@ -67,10 +64,9 @@ def do_join(keight, event):
             return "I don't have anything to join."
         keight.join_channel(arg)
 
-do_join.private = True
-
 
 ## PART
+@plugin.private()
 def do_part(keight, event):
     """Parts a channel.  Can only be performed by identified admins."""
     if keight.get_account(event.source) in keight.admins:
@@ -81,21 +77,23 @@ def do_part(keight, event):
             arg = event.target
         keight.part_channel(arg)
 
-do_part.private = True
-
 ## STATS
+listify = lambda l: ', '.join(i[0] + ': ' + str(i[1]) for i in l)
+
 def do_stats(keight, event):
     """Provides counts of the most used commands, most common users, etc"""
-    listify = lambda l: ', '.join(i[0] + ': ' + str(i[1]) for i in l)
-    commands = [i for i in keight.command_count.most_common(7) if i[1] > 0]
+    commands = [i for i in keight.stats['command_count'].most_common(7)]
+    commands = [i for i in commands if i[1] > 0]
     if not commands:
         return "Nobody's said anything yet!"
     lret = ["Most used commands: " + listify(commands)]
     
-    users = [i for i in keight.user_count.most_common(5) if i[1] > 0]
+    users = [i for i in keight.stats['user_count'].most_common(5)]
+    users = [i for i in users if i[1] > 0]
     lret.append("Most irritating users: " + listify(users))
     
-    channels = [i for i in keight.channel_count.most_common(5) if i[1] > 0]
+    channels = [i for i in keight.stats['channel_count'].most_common(5)]
+    channels = [i for i in channels if i[1] > 0]
     lret.append("Rowdiest channels: " + listify(channels))
     
     return lret

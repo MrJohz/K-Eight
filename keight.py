@@ -15,7 +15,7 @@ OPTIONS:
     --version             Displays version and exits.
     --new_config          Creates a new configuration file and exits.
     -n, --nick=NICK       Runs {name} with nick NICK. (Ignores config file)
-    -s, --host=HOST       Runs {name} with host HOST. (Ignores config file)
+    -s, --server=SERVER   Runs {name} with server SERVER. (Ignores config file)
     -p, --port=PORT       Runs {name} with port PORT. (Ignores config file)
     --pword=PASS          Runs {name} with password PASS. (Ignores config file)
 """
@@ -53,15 +53,23 @@ class UpdateListsHandler(events.ReplyListener):
         else:
             pass
 
+class CapCheckHandler(events.ReplyListener):
+    def __init__(self):
+        events.ReplyListener.__init__(self)
+        self._params = ["ACK"]
+    
+    def notify(self, client, event):
+        if event.command.upper() == "CAP":
+            if event.params[0].upper() == "ACK" and event.params[1] == '*':
+                self._params.extend(event.params[2:])
+            elif event.params[0].upper() == "ACK":
+                self._params.extend(event.params[1:])
+                event.params = self._params
+                self.activate_handlers(client, event)
+
 ## Helper functions and classes
 
 blankFunc = lambda keight, event: None
-
-def opt_compile(regex):
-    if isinstance(regex, basestring):
-        return re.compile(regex)
-    else:
-        return regex
 
 def isiterable(obj):
     try:
@@ -113,6 +121,11 @@ class DoTimingThread(threading.Thread):
 class Keight(bot.SimpleBot):
     def __init__(self, config, opts=None, args=None):
         self.logger = log.Logger()
+        self.commands = dict()
+        for i in plugins.COMMAND_NAMES:
+            self.commands[i] = dict()
+        self.commands['re'] = list()
+        self.commands['cmd'] = list()
         self.opts = dict() if opts is None else opts
         opts = self.opts
         self.args = tuple() if args is None else args
@@ -137,23 +150,22 @@ class Keight(bot.SimpleBot):
             password = int(opts['pword'][-1])
         else:
             password = config.connection['password']
-        if 'host' in opts:
-            host = opts['host']
+        if 'server' in opts:
+            server = opts['server'][-1]
         else:
-            host = config.connection['host']
-        self.connect(host, port=port, password=password)
-        self.logger.info("Connected to {host}:{port!s} as {nick}",
-                         tags=['system'], host=host, port=port, nick=nick)
+            server = config.connection['server']
+        self.server, self.port, self.password = server, port, password
+        self.connect(server, port=port, password=password)
+        self.logger.info("Connected to {server}:{port!s} as {nick}",
+                         tags=['system'], server=server, port=port, nick=nick)
         self.user_dict = {}
-        self.commands = {}
-        self.clock_commands = {}
-        self.re_commands = []
-        self.cmd_commands = []
-        self.command_count = Counter({i:0 for i in self.commands})
-        self.user_count = Counter()
-        self.channel_count = Counter()
+        self.stats = persist.PersistentDict('stats.db', writeback=True)
+        self.stats['command_count'] = Counter()
+        self.stats['user_count'] = Counter()
+        self.stats['channel_count'] = Counter()
         self._set_commands()
         self._queue = Queue.Queue()
+        self._use_ident = self.config.admin.get('use_ident', True)
         self.logger.debug("Initialised bot", tags=["system"])
         
     def start(self):
@@ -170,24 +182,24 @@ class Keight(bot.SimpleBot):
     def _set_commands(self, module=None):
         p_folder = self.config.admin.get('plugins_folder')
         if module is None:  # Need to set *all* the commands.
-            self.commands = {}
-            self.clock_commands = {}
-            self.re_commands = []
-            self.cmd_commands = []
-        funcs = plugins.get_funcs(p_folder, module)
+            self.commands = dict()
+            for i in plugins.COMMAND_NAMES:
+                self.commands[i] = dict()
+            self.commands['re'] = list()
+        module_config = getattr(self.config, 'modules', dict())
+        funcs = plugins.get_funcs(p_folder, module, module_config)
         func_no = 0
-        for name, func in funcs:
+        for function in funcs:
             func_no += 1
-            if name.startswith('do_'):
-                self.commands[name[3:]] = func
-            elif name.startswith('clock_'):
-                self.clock_commands[name] = func
-            elif name.startswith('re_'):
-                self.re_commands.append((opt_compile(func.expr), func))
-            elif name.startswith('cmd_'):
-                self.cmd_commands.append((func.cmd.upper(), func))
-            else:
-                func_no -= 1
+            if function.type() == "clock":
+                self.commands["clock"][function.name()] = function
+                continue
+            for regex in function.regexes():
+                self.commands["re"].append((self._opt_compile(regex), function))
+            for alias in function.aliases():
+                self.commands["command"][alias] = function
+            for trigger in function.cmds():
+                self.commands['cmd'].append((trigger, function))
         if module is None:
             self.logger.debug("Loaded {func_no} functions from all modules.",
                               tags=['system'], func_no=func_no)
@@ -196,6 +208,59 @@ class Keight(bot.SimpleBot):
                               tags=['system'], module=module, func_no=func_no)
                               
         return func_no
+
+    def on_welcome(self, event):
+        self.logger.debug("Recieved welcome message.", tags=['system'])
+        chans = self.config.connection.get('channels')
+        chans = list() if chans is None else chans
+        chans.extend(self.args['channels'])
+        for channel in chans:
+            if not channel.startswith('#'):
+                channel = '#' + channel
+            self.join(channel)
+            self.logger.info("Joined channel {channel}", tags=['system'],
+                             channel=channel)
+        
+        try:
+            ns = self.config.nickserv
+        except AttributeError:
+            pass
+        else:
+            if ns.get('command') is not None:
+                command = ns['command'].split(None, 1)
+                if command[0] == "MSG":
+                    command[0] = "PRIVMSG"
+                self.execute(*command)
+            else:
+                name = ns.get('name', '')
+                password = ns.get('password', '')
+                command = "IDENTIFY {name} {password}"
+                self.send_message('NickServ',
+                             command.format(name=name, password=password))
+                command = "IDENTIFY {password}"
+                self.send_message('NickServ',
+                             command.format(password=password))
+        
+        # EXECUTE CAP THINGY
+        self.execute("CAP", "REQ", "identify-msg")
+        self.execute("CAP", "END")
+    
+    def on_cap_event(self, event):
+        try:
+            self._caps
+        except:
+            self._caps = {}
+        if event.params[0].upper() == 'ACK':
+            for param in event.params[1:]:
+                if param[0] == '-':
+                    self._caps[param[1:].strip()] = False
+                elif param[0] == '=':
+                    pass
+                elif param[0] == '~':
+                    pass
+                else:
+                    self._caps[param.strip()] = True
+            
                 
     def check_all(self):
         self.user_dict = {}
@@ -209,6 +274,8 @@ class Keight(bot.SimpleBot):
                           tags=['system'], user=user)
 
     def is_identified(self, user):
+        if not self._use_ident:
+            return True
         self.check_only(user)
         userObj = self.user_dict.get(user.lower(), None)
         if userObj:
@@ -217,25 +284,26 @@ class Keight(bot.SimpleBot):
             return userObj
     
     def get_account(self, user):
+        if not self._use_ident:
+            return True
         self.check_only(user)
         userObj = self.user_dict.get(user.lower(), None)
         if userObj:
             return userObj.account
         else:
             return None
-
-    def on_welcome(self, event):
-        self.logger.debug("Recieved welcome message.", tags=['system'])
-        chans = self.config.connection.get('channels')
-        chans = list() if chans is None else chans
-        chans.extend(self.args['channels'])
-        for channel in chans:
-            if not channel.startswith('#'):
-                channel = '#' + channel
-            self.join(channel)
-            self.logger.info("Joined channel {channel}", tags=['system'],
-                             channel=channel)
-                              
+    def _opt_compile(self, regex):
+        if isinstance(regex, basestring):
+            try:
+                regex = regex.format(nick=self.nick)
+            except KeyError:
+                txt  = "Regex {regex} does not use format-safe syntax.  If it "
+                txt += "does not need options-formatting, consider compiling it "
+                txt += "for speed and security."
+                self.logger.warning(txt, tags=['system'], regex=regex)
+            return re.compile(regex)
+        else:
+            return regex
 
     def _send_linebr_message(self, target, message):
         message = message.split('\n')
@@ -251,14 +319,29 @@ class Keight(bot.SimpleBot):
         self._queue.put((time, func_name, arg), False)
     
     def do_time_event(self, time, func_name, arg):
-        func = self.clock_commands.get(func_name, blankFunc)
+        func = self.commands['clock'].get(func_name, blankFunc)
         try:
             retVal = func(self, time, func_name, arg)
         except Exception as e:
             retVal = '{}: {}'.format(type(e).__name__, str(e))
-            print retVal
+            self.logger.error(retVal, tags=['system'])
 
     def do_command(self, event):
+        try:
+            self._caps
+        except AttributeError:
+            self._caps = {}
+        if self._caps.get('identify-msg', False):
+            id = True if event.message[0] == '+' else False
+            event.message = event.message[1:]
+            user_id = self.user_dict.get(event.source.lower())
+            if user_id is None:
+                self.check_only(event.source)
+            else:
+                user_id.identified = id
+                if not id:
+                    user_id.account = None
+                    
         command_key = self.config.admin.get('command_key', '.')
         if event.private:
             target = event.source
@@ -268,8 +351,10 @@ class Keight(bot.SimpleBot):
         if event.message.lower().startswith(self.nick.lower() + '!'):
             self.send_message(target, event.source + '!')
         
-        for regex, func in self.re_commands:
-            if regex.search(event.message):
+        for regex, func in self.commands['re']:
+            match = regex.search(event.message)
+            if match:
+                event.match = match
                 try:
                     retVal = func(self, event)
                 except Exception as e:
@@ -293,14 +378,17 @@ class Keight(bot.SimpleBot):
             event.command = command
             event.args = args
             
-            retFunc = self.commands.get(command, blankFunc)
+            secret_chans = self.config.admin.get('secret_channels', [])
+            
+            retFunc = self.commands['command'].get(command, blankFunc)
             conditions = (not retFunc is blankFunc,
-                          target not in self.config.admin.get('secretchannels', []),
-                          not getattr(retFunc, 'private', False))
-            if all(conditions):
-                self.command_count[command] += 1
-                self.user_count[event.source] += 1
-                self.channel_count[target] += 1 if target.startswith('#') else 0
+                          target not in secret_chans)
+            if all(conditions) and not retFunc.private():
+                self.stats['command_count'][retFunc.name()] += 1
+                self.stats['user_count'][event.source] += 1
+                target_is_chan = int(target.startswith('#'))
+                self.stats['channel_count'][target] += target_is_chan
+                self.stats.sync()
                 
             try:
                 retVal = retFunc(self, event)
@@ -347,15 +435,15 @@ class Keight(bot.SimpleBot):
             self.check_only(event.source)
 
     def on_any(self, event):
-        # pprint.pprint(vars(event))   # debugging line
-        for cmd, func in self.cmd_commands:
+        for cmd, func in self.commands['cmd'].items():
             if fnmatch.fnmatch(event.command, cmd):
+                print vars(func)
                 func(self, event)
             
 if __name__ == "__main__":
     from tools import clopt
     options = ('quiet|q', 'version', 'new_config', 'nick|n=',
-               'host|s=', 'port|p=', 'pword=', 'help|h')
+               'server|s=', 'port|p=', 'pword=', 'help|h')
     arguments = ('channels*',)
     try:
         opts, args = clopt.clopt(sys.argv[1:], options, arguments)
@@ -385,4 +473,5 @@ if __name__ == "__main__":
     keight = Keight(keight_config, opts, args)
     keight.register_listener('whois', events.WhoisReplyListener())
     keight.register_listener('update_list_event', UpdateListsHandler())
+    keight.register_listener('cap_event', CapCheckHandler())
     keight.start()

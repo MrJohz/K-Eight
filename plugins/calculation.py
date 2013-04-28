@@ -1,9 +1,11 @@
 from tools.web import urllib
+from tools import plugin
 
 ###############################################
 ### BEGIN COMMANDS:############################
 ###############################################
 
+@plugin.alias('c')
 def do_calculate(keight, event):
     """Simple calculator function."""
     msg = event.message.split(' ', 1)
@@ -31,8 +33,6 @@ def do_calculate(keight, event):
         return answer
     else:
         return "Sorry {}, I can't get a result.  :/".format(event.source)
-
-do_c = do_calculate
 
 ###############################################
 

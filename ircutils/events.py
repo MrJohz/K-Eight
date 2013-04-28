@@ -519,6 +519,10 @@ class WhoisReplyListener(ReplyListener):
         elif event.command == "RPL_WHOISOPERATOR":
             # <nick> :is an IRC operator
             self._whois_replies[event.params[0].lower()].is_operator = True
+        elif event.command == "RPL_SUSERHOST":  # It's a Plexus thing, I think.
+            # <nick> :has identified for [this nick|<nick>]
+            self._whois_replies[event.params[0].lower()].identified = True
+            self._whois_replies[event.params[0].lower()].account = event.params[0]
         elif event.command == "RPL_ENDOFWHOIS":
             # <nick> :End of WHOIS list
             try:

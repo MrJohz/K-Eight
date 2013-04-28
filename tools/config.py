@@ -5,13 +5,13 @@ import yaml
 import log
 
 ## Constants
-VITALS = {'connection': ['nick', 'host'],
+VITALS = {'connection': ['nick', 'server'],
           'admin':      ['owner']}
 
 SAMPLE_CONFIG = '''
 connection:
     nick: 
-    host: 
+    server: 
     port: 6667
     password: ~
     channels:
@@ -50,12 +50,14 @@ class ConfigParser(object):
         self._raw_conf = yaml.load(file)
         try:
             file.close()
-        except AttributeError:  # Probably isn't a filetype
+        except AttributeError:  # Probably isn't a filetype, roll with it
             pass
         if not isinstance(self._raw_conf, dict):
             raise InvalidConfigError("No sections")
         self.connection = dict()
         self.admin = dict()
+        if self._raw_conf.get('nickserv') is not None:
+            self.nickserv = self._raw_conf['nickserv']
         try:
             self.connection.update(self._raw_conf['connection'])
         except KeyError:
@@ -64,6 +66,11 @@ class ConfigParser(object):
             self.admin.update(self._raw_conf['admin'])
         except KeyError:
             raise InvalidConfigError("No admin section")
+        
+        try:
+            self.modules = self._raw_conf['modules']
+        except KeyError:
+            self.modules = dict()
         
         logger = log.Logger('k-eight')
         try:

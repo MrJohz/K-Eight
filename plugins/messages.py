@@ -2,7 +2,7 @@ from __future__ import division
 
 import re
 import datetime
-from tools import persist
+from tools import persist, plugin
 
 TIMESTRS = ['secs', 'mins', 'hrs', 'days']
 TIMESTR_TIMES = dict(zip(TIMESTRS, [1, 60, 60*60, 24*60*60]))
@@ -140,6 +140,7 @@ def do_tell(keight, event):
     ret = "{source}: I'll tell {sendee} that when I next see them."
     return ret.format(source=event.source, sendee=sendee)
 
+@plugin.add_regex('.*?')
 def re_any(keight, event):
     retMes = []
     message_db = persist.PersistentDict('messages.db')
@@ -156,7 +157,6 @@ def re_any(keight, event):
             retMes.append(m)
     if retMes:
         return retMes
-re_any.expr = '.*'
 
 def do_onjoin(keight, event):
     msg = event.args
@@ -185,6 +185,7 @@ def do_onjoin(keight, event):
     ret = "{source}: I'll tell {sendee} that when I next see them."
     return ret.format(source=event.source, sendee=sendee)
 
+plugin.add_cmd('JOIN')
 def cmd_join(keight, event):
     message_db = persist.PersistentDict('onjoin_messages.db')
     messages = message_db.get(event.source.lower().strip(), [])
@@ -198,5 +199,3 @@ def cmd_join(keight, event):
             m = m.format(event.source, message['sender'],
                          timestr, message['message'])
             keight.send_message(message['channel'], m)
-
-cmd_join.cmd = 'JOIN'
