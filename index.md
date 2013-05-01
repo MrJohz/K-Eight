@@ -49,8 +49,11 @@ For more thorough documentation, check out the [commands][] page, and have a loo
 
 ## What else can I do with K-Eight?
 Now you're asking the right sort of questions.  Try these three things on for size:
+
 1. Play with the preferences in `config.yml`.  Go wild, and if you really manage to break things, just run K-Eight with the `--new_config` switch again to produce a new configuration file.  You might want to check out our [preferences][] page.
+
 2. Write your own command.  Ultimately, if you can write a function you can write a K-Eight command.  An overview of what one of those functions should look like can be found in the [tutorial][].
+
 3. Fork the Repo.  Because while you can have fun with your own version of K-Eight, how much more awesome would it be if your modifications were used by everyone?  Speaking as a lazy coder, I think it would be *really* awesome, and you should totally get on with it.  K-Eight can be found on Github via the link at the top of the page, or by clicking [here][github].
 
 [preferences]: <./preferences>
