@@ -18,15 +18,15 @@ K-Eight was named after the presumed predecessor to K-9, the robot dog who for a
 ## How do I use K-Eight?
 Firstly, you'll need Python 2.7.x, which is available [here][pydownload].  Then download one of the two files in the header above and unzip it somewhere sensible.  Navigate to that folder, and run the command:
 
-``` bash
+{% highlight bash %}
 ~ $ python keight.py --new_config
-```
+{% endhighlight %}
 
 This will create the file `config.yml`.  Edit that file to represent your chosen preferences and save.  Finally, run the following command:
 
-``` bash
+{% highlight bash %}
 ~ $ python keight.py
-```
+{% endhighlight %}
     
 Now log onto the irc server that you connected K-Eight to, and play.
 
