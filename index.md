@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 > K-Eight is fast, easy to extend, friendly, and designed for everything from chatting to channel management.
 > Have fun.
 
