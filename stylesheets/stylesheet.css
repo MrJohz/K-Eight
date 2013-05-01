@@ -304,6 +304,8 @@ ul li {
 ol li {
   list-style: decimal inside;
   padding-left: 3px;
+  margin-left: 30px
+  text-indent: -25px
 }
 
 dl dt {
