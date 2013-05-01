@@ -3,16 +3,17 @@ connection. If you are trying to build a bot, :class:`ircutils.bot.SimpleBot`
 inherits from :class:`SimpleClient` so it has the methods listed below.
 
 """
-import collections
 
+from __future__ import absolute_import
+
+import collections
 import pprint
 
-import connection
-import ctcp
-import events
-import format
-import protocol
-
+from . import connection
+from . import ctcp
+from . import events
+from . import format
+from . import protocol
 
 class SimpleClient(object):
     """ SimpleClient is designed to provide a high level of abstraction
@@ -202,13 +203,13 @@ class SimpleClient(object):
         """
         if channel == "0":
             self.channels = []
-            self.conn.execute("JOIN", "0")
+            self.execute("JOIN", "0")
         else:
             if key is not None:
                 params = [channel, key]
             else:
                 params = [channel]
-            self.conn.execute("JOIN", *params)
+            self.execute("JOIN", *params)
     
     
     def part_channel(self, channel, message=None):
@@ -216,7 +217,7 @@ class SimpleClient(object):
         You may provide a message that shows up during departure.
             
         """
-        self.conn.execute("PART", channel, trailing=message)
+        self.execute("PART", channel, trailing=message)
     
     
     def send_message(self, target, message, to_service=False):
@@ -226,9 +227,9 @@ class SimpleClient(object):
         """
         message = ctcp.low_level_quote(message)
         if to_service:
-            self.conn.execute("SQUERY", target, message)
+            self.execute("SQUERY", target, message)
         else:
-            self.conn.execute("PRIVMSG", target, trailing=message)
+            self.execute("PRIVMSG", target, trailing=message)
     
     
     def send_notice(self, target, message):
@@ -236,7 +237,7 @@ class SimpleClient(object):
         
         """
         message = ctcp.low_level_quote(message)
-        self.conn.execute("NOTICE", target, trailing=message)
+        self.execute("NOTICE", target, trailing=message)
     
     
     def send_ctcp(self, target, command, params=None):
@@ -274,7 +275,7 @@ class SimpleClient(object):
     def set_nickname(self, nickname):
         """ Attempts to set the nickname for the client. """
         self._prev_nickname = self.nickname
-        self.conn.execute("NICK", nickname)
+        self.execute("NICK", nickname)
     
     
     def disconnect(self, message=None):
@@ -284,7 +285,7 @@ class SimpleClient(object):
         
             client.disconnect("Goodbye cruel world!")
         """
-        self.conn.execute("QUIT", trailing=message)
+        self.execute("QUIT", trailing=message)
         self.channels = []
         self.conn.close_when_done()
 
@@ -305,7 +306,7 @@ class SimpleClient(object):
             self.execute("PRIVMSG", channel, trailing="Hello, world!")
             
         """
-        self.conn.execute(command, *args, **kwargs)
+        command, params = self.conn.execute(command, *args, **kwargs)
     
     
     # Some less verbose aliases

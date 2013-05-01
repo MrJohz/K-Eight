@@ -23,12 +23,22 @@ admin:
         - 
     command_key: .
     plugins_folder: "./plugins"
+    use_ident: True
+
+nickserv:
+    name: 
+    password:
 
 logging:
     -
         output: stdout
-        tags: ['*']
-        level: NOTICE
+        tags: ['system']
+        level: INFO
+
+modules:
+    exclude:
+        - "admin"
+        - "logging"
 '''.strip()
 
 ## Errors:

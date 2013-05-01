@@ -17,8 +17,8 @@ def do_help(keight, event):
         command = msg[1].strip()
     except IndexError:
         if event.private:
-            commands = (i for i, j in keight.commands.iteritems() \
-                                    if not getattr(j, 'private', False))
+            commands = (i for i, j in keight.commands['command'] if not j.private())
+            commands = (i for i,j in keight.commands['command'])
             return ("Commands recognised: " + ', '.join(commands),
                     "Use .help <command> for more instructions.")
         else:
@@ -37,7 +37,7 @@ def do_help(keight, event):
             return msg.format(command, "This command doesn't appear to have "
                                        "any documentation.")
 
-@plugin.private()
+# @plugin.private()
 def do_reload(keight, event):
     """Reloads a module."""
     if keight.get_account(event.source) in keight.admins:

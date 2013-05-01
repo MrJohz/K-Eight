@@ -1,10 +1,6 @@
 from tools.web import urllib
 from tools import plugin
 
-###############################################
-### BEGIN COMMANDS:############################
-###############################################
-
 @plugin.alias('c')
 def do_calculate(keight, event):
     """Simple calculator function."""
@@ -33,8 +29,7 @@ def do_calculate(keight, event):
         return answer
     else:
         return "Sorry {}, I can't get a result.  :/".format(event.source)
-
-###############################################
+        
 
 def do_wa(keight, event):
     """Wolfram Alpha request."""
@@ -60,3 +55,8 @@ def do_wa(keight, event):
             answer.append(advice)
         return answer
     else: return "I couldn't find anything, sorry."
+
+
+def do_python(keight, event):
+    """Runs a snippet of code through a python interpreter using codepad.org"""
+    pass

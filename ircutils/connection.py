@@ -84,6 +84,7 @@ class Connection(asynchat.async_chat):
             if kwargs["trailing"] is not None:
                 params.append(":%s" % kwargs["trailing"])
         self.push("%s %s\r\n" % (command.upper(), " ".join(params)))
+        return command.upper(), ' '.join(params)
     
     
     def handle_error(self):

@@ -7,6 +7,22 @@ from tools import persist, plugin
 TIMESTRS = ['secs', 'mins', 'hrs', 'days']
 TIMESTR_TIMES = dict(zip(TIMESTRS, [1, 60, 60*60, 24*60*60]))
 
+ZERO = datetime.timedelta(0)
+
+class UTC(datetime.tzinfo):
+    """UTC"""
+
+    def utcoffset(self, dt):
+        return ZERO
+
+    def tzname(self, dt):
+        return "UTC"
+
+    def dst(self, dt):
+        return ZERO
+
+utc = UTC()
+
 # I think this is a more elegant way of creating a dictionary
 # of 'abbreviation': 'meaning' pairs, but who knows?
 EQUIV_TIMESTRS = {'secs': ['s', 'sec', 'secs', 'seconds', 'second'],
@@ -100,11 +116,11 @@ EXAMPLE:  .in 5hrs 3mins message"""
     now = datetime.datetime.now()
     delta = datetime.timedelta(seconds=secs)
     then = now + delta
-    keight.add_time_event(then, 'clock_alert', event)
+    keight.add_time_event(then, 'in_alert', event)
     return "I'll remind you about that in {}.".format(prettify_time(delta))
     
 
-def clock_alert(keight, time, func_name, arg):
+def clock_in_alert(keight, time, func_name, arg):
     msg = arg.alert_message
     if msg.strip() is not '':
         line = "{}: {}".format(arg.source, msg)
@@ -113,7 +129,7 @@ def clock_alert(keight, time, func_name, arg):
     keight.send_message(arg.target, line)
     
 ## tell/note
-
+@plugin.alias("ask")
 def do_tell(keight, event):
     msg = event.args
     try:
@@ -122,7 +138,8 @@ def do_tell(keight, event):
         return "There's no message there."
     
     if sendee.rstrip('_') == keight.nick.rstrip('_'):
-        return "Look, if you want to tell me something, just tell it to my face."
+        t = "Look, if you want to {cmd} me something, just tell it to my face."
+        return t.format(cmd=event.command)
     
     # Some people like to quote their messages, but we like to do that
     # for them, so let's get rid of extranious quotes.
@@ -130,9 +147,10 @@ def do_tell(keight, event):
                 (message.startswith("'") and message.endswith("'")):
         message = message[1:-1]
     
-    m_dict = {'message': message,
+    m_dict = {'command': event.command,
+              'message': message,
               'sender':  event.source,
-              'time':    datetime.datetime.now()}
+              'time':    datetime.datetime.now(utc)}
     
     message_db = persist.PersistentDict('messages.db')
     message_list = message_db.get(sendee.lower())
@@ -140,8 +158,8 @@ def do_tell(keight, event):
     message_list.append(m_dict)
     message_db[sendee.lower()] = message_list
     
-    ret = "{source}: I'll tell {sendee} that when I next see them."
-    return ret.format(source=event.source, sendee=sendee)
+    ret = "{source}: I'll {cmd} {sendee} that when I next see them."
+    return ret.format(source=event.source, sendee=sendee, cmd=event.command)
 
 @plugin.add_regex('.*?')
 def re_any(keight, event):
@@ -149,14 +167,16 @@ def re_any(keight, event):
     message_db = persist.PersistentDict('messages.db')
     messages = message_db.get(event.source.lower().strip(), [])
     message_db[event.source.lower().strip()] = []
+    del message_db[event.source.lower().strip()]
     if messages:
-        now = datetime.datetime.now()
         for message in messages:
-            diff = now - message['time']
-            timestr = prettify_time(diff) + ' ago'
-            m = '{}: {} left you this message {}: "{}"'
-            m = m.format(event.source, message['sender'],
-                         timestr, message['message'])
+            timestr = message['time'].strftime('%I:%M%p %Z')
+            datestr = message['time'].strftime('%a %d %b %Y')
+            m  = "{sendee}: {sender} told me to {cmd} you {message} "
+            m += "at {time} on {date}"
+            m  = m.format(sendee=event.source, sender=message['sender'],
+                         time=timestr, message=message['message'],
+                         date=datestr, cmd=message['command'])
             retMes.append(m)
     if retMes:
         return retMes
@@ -164,5 +184,5 @@ def re_any(keight, event):
 @plugin.add_cmd("JOIN")
 def cmd_alert_if_messages(keight, event):
     message_db = persist.PersistentDict('messages.db')
-    if message_db.get(event.source.lower().strip()) is not None:
+    if message_db.get(event.source.lower().strip()):
         keight.send_message(event.target, event.source + '!  You\'ve got mail!')

@@ -99,7 +99,7 @@ class PluginFunction(object):
             self.type = None
             self.__name__ = function.__name__
         
-        self.module = module
+        self._module = module
         self._aliases = []
         if self._type == "command":
             self._aliases.append(self.__name__)

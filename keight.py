@@ -1,3 +1,5 @@
+#! python
+
 """
 K-Eight - an extendable python IRC bot by Johz.
 
@@ -14,10 +16,10 @@ OPTIONS:
     -h, --help            Displays this message and exits.
     --version             Displays version and exits.
     --new_config          Creates a new configuration file and exits.
-    -n, --nick=NICK       Runs {name} with nick NICK. (Ignores config file)
-    -s, --server=SERVER   Runs {name} with server SERVER. (Ignores config file)
-    -p, --port=PORT       Runs {name} with port PORT. (Ignores config file)
-    --pword=PASS          Runs {name} with password PASS. (Ignores config file)
+    -n, --nick=NICK       Runs {name} with nick NICK. (Ignores config)
+    -s, --server=SERVER   Runs {name} with server SERVER. (Ignores config)
+    -p, --port=PORT       Runs {name} with port PORT. (Ignores config)
+    --pword=PASS          Runs {name} with password PASS. (Ignores config)
 """
 
 import datetime
@@ -34,6 +36,12 @@ from collections import Counter
 from ircutils import bot, events, format
 from tools import persist, config, log
 from tools import plugin_imports as plugins
+
+## Constants
+INFO_IRC_EVENTS = {'JOIN': 'Joined channel {event.target}',
+                   'PART': 'Left channel {event.target}'}
+
+DEBUG_IRC_EVENTS = {}
 
 ## Some custom handlers
 class UpdateListsHandler(events.ReplyListener):
@@ -123,9 +131,7 @@ class Keight(bot.SimpleBot):
         self.logger = log.Logger()
         self.commands = dict()
         for i in plugins.COMMAND_NAMES:
-            self.commands[i] = dict()
-        self.commands['re'] = list()
-        self.commands['cmd'] = list()
+            self.commands[i] = list()
         self.opts = dict() if opts is None else opts
         opts = self.opts
         self.args = tuple() if args is None else args
@@ -184,21 +190,24 @@ class Keight(bot.SimpleBot):
         if module is None:  # Need to set *all* the commands.
             self.commands = dict()
             for i in plugins.COMMAND_NAMES:
-                self.commands[i] = dict()
-            self.commands['re'] = list()
-            self.commands['cmd'] = list()
+                self.commands[i] = list()
+        else:
+            for module_list in self.commands.values():
+                for tup in module_list[:]:
+                    if tup[1].module() == module:
+                        module_list.remove(tup)
         module_config = getattr(self.config, 'modules', dict())
         funcs = plugins.get_funcs(p_folder, module, module_config)
         func_no = 0
         for function in funcs:
             func_no += 1
             if function.type() == "clock":
-                self.commands["clock"][function.name()] = function
+                self.commands["clock"].append((function.name(), function))
                 continue
             for regex in function.regexes():
                 self.commands["re"].append((self._opt_compile(regex), function))
             for alias in function.aliases():
-                self.commands["command"][alias] = function
+                self.commands["command"].append((alias, function))
             for trigger in function.cmds():
                 self.commands['cmd'].append((trigger, function))
         if module is None:
@@ -219,8 +228,6 @@ class Keight(bot.SimpleBot):
             if not channel.startswith('#'):
                 channel = '#' + channel
             self.join(channel)
-            self.logger.info("Joined channel {channel}", tags=['system'],
-                             channel=channel)
         
         try:
             ns = self.config.nickserv
@@ -320,7 +327,11 @@ class Keight(bot.SimpleBot):
         self._queue.put((time, func_name, arg), False)
     
     def do_time_event(self, time, func_name, arg):
-        func = self.commands['clock'].get(func_name, blankFunc)
+        for name, func in self.commands['clock']:
+            if name == func_name:
+                break
+            else:
+                return
         try:
             retVal = func(self, time, func_name, arg)
         except Exception as e:
@@ -381,7 +392,12 @@ class Keight(bot.SimpleBot):
             
             secret_chans = self.config.admin.get('secret_channels', [])
             
-            retFunc = self.commands['command'].get(command, blankFunc)
+            for name, func in self.commands['command']:
+                if name == command:
+                    retFunc = func
+                    break
+                else:
+                    retFunc = blankFunc
             conditions = (not retFunc is blankFunc,
                           target not in secret_chans)
             if all(conditions) and not retFunc.private():
@@ -436,6 +452,13 @@ class Keight(bot.SimpleBot):
             self.check_only(event.source)
 
     def on_any(self, event):
+        if event.source == self.nick:
+            for cmd, msg in INFO_IRC_EVENTS.items():
+                if event.command == cmd:
+                    self.logger.info(msg, tags=['system'], keight=self, event=event)
+            for cmd, msg in DEBUG_IRC_EVENTS.items():
+                if event.command == cmd:
+                    self.logger.debug(msg, tags=['system'], keight=self, event=event)
         for cmd, func in self.commands['cmd']:
             if fnmatch.fnmatch(event.command, cmd):
                 func(self, event)
@@ -457,7 +480,8 @@ if __name__ == "__main__":
             conf_file.write(config.SAMPLE_CONFIG)
         sys.exit(0)
     if 'help' in opts:
-        print __doc__.format(name=sys.argv[0]).strip()
+        name = os.path.split(sys.argv[0])[1]
+        print __doc__.format(name=name).strip()
         sys.exit(0)
     
     try:
