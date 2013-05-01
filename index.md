@@ -2,8 +2,7 @@
 layout: default
 ---
 
-> K-Eight is fast, easy to extend, friendly, and designed for everything from chatting to channel management.
-> Have fun.
+> K-Eight is fast, easy to extend, friendly, and designed for everything from chatting to channel management.  Have fun.
 
 ## What is K-Eight?
 K-Eight is a Python IRC bot designed by [myself][johz] using Evan Fosmark's [IRCUtils][ircutils] to deal with the IRC abstractions.  It is currently in the process of being padded out with extra features such as IRC logging and the whole host of commands and triggers that one expects from a fully-featured IRC bot.  However it is already a powerful tool, with its own internal logging system and a powerful toolkit.
@@ -16,7 +15,7 @@ K-Eight was named after the presumed predecessor to K-9, the robot dog who for a
 [ircutils]: <http://dev.guardedcode.com/projects/ircutils/>
 
 ## How do I use K-Eight?
-Firstly, you'll need Python 2.7.x, which is available [here][pydownload].  Then download one of the two files in the header above and unzip it somewhere sensible.  Navigate to that folder, and run the command:
+This is just a quickstart.  For the full story, you might want to read the [documentation][commandline] of K-Eight's command-line interface.  Firstly, you'll need Python 2.7.x, which is available on the [python.org website][pydownload].  Then download one of the two files in the header above and unzip it somewhere sensible.  Navigate to that folder, and run the command:
 
 {% highlight bash %}
 ~ $ python keight.py --new_config
@@ -30,6 +29,7 @@ This will create the file `config.yml`.  Edit that file to represent your chosen
     
 Now log onto the irc server that you connected K-Eight to, and play.  It's just that simple.
 
+[commandline]: </docs>
 [pydownload]: <http://www.python.org/getit/releases/2.7.4/#download>
 
 ## What can K-Eight do?
@@ -47,10 +47,10 @@ For more thorough documentation, check out the [commands][] page, and have a loo
 
 ## What else can I do with K-Eight?
 Now you're asking the right sort of questions.  Try these three things on for size:
-1. Play with the preferences in `config.yml`.  Go wild, and if you really manage to break things, just run K-Eight with the `--new_config` switch again to produce a new configuration file.  You can find some help as to what the preferences do [here][preferences].
-2. Write your own command.  Ultimately, if you can write a function you can write a K-Eight command.  An overview of what one of those functions should look like can be found [here][commandtutorial].
+1. Play with the preferences in `config.yml`.  Go wild, and if you really manage to break things, just run K-Eight with the `--new_config` switch again to produce a new configuration file.  You might want to check out our[preferences][] page.
+2. Write your own command.  Ultimately, if you can write a function you can write a K-Eight command.  An overview of what one of those functions should look like can be found in the [tutorial][].
 3. Fork the Repo.  Because while you can have fun with your own version of K-Eight, how much more awesome would it be if your modifications were used by everyone?  Speaking as a lazy coder, I think it would be *really* awesome, and you should totally get on with it.  K-Eight can be found on Github via the link at the top of the page, or by clicking [here][github].
 
 [preferences]: </preferences>
-[commandtutorial]: </tutorial>
+[tutorial]: </tutorial>
 [github]: <https://github.com/MrJohz/K-Eight>
