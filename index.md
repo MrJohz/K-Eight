@@ -15,7 +15,7 @@ K-Eight was named after the presumed predecessor to K-9, the robot dog who for a
 [ircutils]: <http://dev.guardedcode.com/projects/ircutils/>
 
 ## How do I use K-Eight?
-This is just a quickstart.  For the full story, you might want to read the [documentation][commandline] of K-Eight's command-line interface.
+*This is just a quickstart.  For the full story, you might want to read the [documentation][commandline] of K-Eight's command-line interface.*
 
 Firstly, you'll need Python 2.7.x, which is available on the [python.org website][pydownload].  Then download one of the two files in the header above and unzip it somewhere sensible.  Navigate to that folder, and run the command:
 
