@@ -43,7 +43,7 @@ K-Eight has many triggers, but the most obvious one is the .command syntax popul
 
 For more thorough documentation, check out the [commands][] page, and have a look through there.  Or, if you're bored already, check out the next section of this brief introduction.
 
-[commands]: <K-Eight/commands>
+[commands]: <./commands>
 
 ## What else can I do with K-Eight?
 Now you're asking the right sort of questions.  Try these three things on for size:
@@ -51,6 +51,6 @@ Now you're asking the right sort of questions.  Try these three things on for si
 2. Write your own command.  Ultimately, if you can write a function you can write a K-Eight command.  An overview of what one of those functions should look like can be found in the [tutorial][].
 3. Fork the Repo.  Because while you can have fun with your own version of K-Eight, how much more awesome would it be if your modifications were used by everyone?  Speaking as a lazy coder, I think it would be *really* awesome, and you should totally get on with it.  K-Eight can be found on Github via the link at the top of the page, or by clicking [here][github].
 
-[preferences]: <K-Eight/preferences>
+[preferences]: </preferences>
 [tutorial]: <K-Eight/tutorial>
 [github]: <https://github.com/MrJohz/K-Eight>
