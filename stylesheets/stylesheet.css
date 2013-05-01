@@ -285,10 +285,7 @@ p {
  
 a {
   text-decoration: none;
-}
-
-p a {
-  font-weight: 700;
+  font-weight: 600
 }
 
 blockquote {
