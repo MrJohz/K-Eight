@@ -29,7 +29,7 @@ This will create the file `config.yml`.  Edit that file to represent your chosen
     
 Now log onto the irc server that you connected K-Eight to, and play.  It's just that simple.
 
-[commandline]: </docs>
+[commandline]: <K-Eight/docs>
 [pydownload]: <http://www.python.org/getit/releases/2.7.4/#download>
 
 ## What can K-Eight do?
@@ -43,14 +43,14 @@ K-Eight has many triggers, but the most obvious one is the .command syntax popul
 
 For more thorough documentation, check out the [commands][] page, and have a look through there.  Or, if you're bored already, check out the next section of this brief introduction.
 
-[commands]: </commands>
+[commands]: <K-Eight/commands>
 
 ## What else can I do with K-Eight?
 Now you're asking the right sort of questions.  Try these three things on for size:
-1. Play with the preferences in `config.yml`.  Go wild, and if you really manage to break things, just run K-Eight with the `--new_config` switch again to produce a new configuration file.  You might want to check out our[preferences][] page.
+1. Play with the preferences in `config.yml`.  Go wild, and if you really manage to break things, just run K-Eight with the `--new_config` switch again to produce a new configuration file.  You might want to check out our [preferences][] page.
 2. Write your own command.  Ultimately, if you can write a function you can write a K-Eight command.  An overview of what one of those functions should look like can be found in the [tutorial][].
 3. Fork the Repo.  Because while you can have fun with your own version of K-Eight, how much more awesome would it be if your modifications were used by everyone?  Speaking as a lazy coder, I think it would be *really* awesome, and you should totally get on with it.  K-Eight can be found on Github via the link at the top of the page, or by clicking [here][github].
 
-[preferences]: </preferences>
-[tutorial]: </tutorial>
+[preferences]: <K-Eight/preferences>
+[tutorial]: <K-Eight/tutorial>
 [github]: <https://github.com/MrJohz/K-Eight>
