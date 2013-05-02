@@ -2,6 +2,8 @@
 layout: default
 ---
 
+> K-Eight can be operated easily with just a few simple clicks of the keyboard, all from your favourite command shell.
+
 ## Documentation
 
 {% highlight bash %}
