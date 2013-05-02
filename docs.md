@@ -5,7 +5,7 @@ layout: default
 ## Documentation
 
 {% highlight bash %}
-~ $ python keight.py [--quiet | -q] [--version] [--new_config] [--nick -n <NICK>] [--server -s <SERVER>] [--port -p <PORT>] [--pword <PASS>] [-h | --help] [--] [ #channel1 [ #channel2 [ #channel3 [...]]]]
+~ $ python keight.py [--quiet | -q] [--version] [--new_config] [--nick -n <NICK>] [--server -s <SERVER>] [--port -p <PORT>] [--pword <PASS>] [-h | --help] [--] [ channel1 [ channel2 [ channel3 [...]]]]
 {% endhighlight %}
 
 ### Descriptions
@@ -55,18 +55,17 @@ Shows a help message and exits.
 
 K-Eight will not interpret any more arguments as options.
 
-> `#channel1 [...]`
+> `channel1 [...]`
 
-Each other argument will be interpreted as a channel to join once connected to the server.  If the channel does not begin with a pound sign ('#'), K-Eight will add one in.
+Each other argument will be interpreted as a channel to join once connected to the server.  K-Eight will automatically preface the channel name with a pound sign ('#').
 
 ### Examples
 
 {% highlight bash %}
-~ $ python keight.py --new_config    # Will create a new config.yml file
-~ $ python keight.py -p 6663         # Will connect to the default server using port 6663
+~ $ python keight.py --new_config                  # Will create a new config.yml file
+~ $ python keight.py -p 6663 -s irc.freenode.net   # Will connect to the default server using port 6663
 
-# The following will both connect to the same channel:
-~ $ python keight.py #channel1
+# The following will both connect to channel1
 ~ $ python keight.py channel1
 {% endhighlight %}
 
