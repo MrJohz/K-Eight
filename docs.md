@@ -68,7 +68,7 @@ Each other argument will be interpreted as a channel to join once connected to t
 # Will create a new config.yml file
 ~ $ python keight.py --new_config
 # Will connect to the default server using port 6663
-~ $ python keight.py -p=6663 -s"irc.freenode.net"
+~ $ python keight.py -p=6663 -s="irc.freenode.net"
 
 # The following will connect to channel1
 ~ $ python keight.py channel1
