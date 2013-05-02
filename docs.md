@@ -8,9 +8,9 @@ layout: default
 
 {% highlight bash %}
 ~ $ python keight.py [--quiet | -q] [--version] [--new_config]
-    [--nick -n <NICK>] [--server -s <SERVER>] [--port -p <PORT>]
-    [--pword <PASS>] [-h | --help] [--]
-    [ channel1 [ channel2 [ channel3 [...]]]]
+      [--nick -n <NICK>] [--server -s <SERVER>] [--port -p <PORT>]
+      [--pword <PASS>] [-h | --help] [--]
+      [ channel1 [ channel2 [ channel3 [...]]]]
 {% endhighlight %}
 
 ### Descriptions
