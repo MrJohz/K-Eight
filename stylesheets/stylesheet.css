@@ -68,7 +68,6 @@ a:hover {
 header {
   padding-top: 35px;
   padding-bottom: 25px;
-  font-variant: small-caps;
 }
 
 header h1 {
@@ -116,7 +115,6 @@ header h2 {
 }
 
 #nav a {
-  font-variant: small-caps;
   color: #303030;
   font-weight: bold;
 }
