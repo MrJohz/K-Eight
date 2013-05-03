@@ -113,6 +113,12 @@ header h2 {
   display: table-cell;
 }
 
+#nav a {
+  font-variant: small-caps;
+  color: #303030;
+  font-weight: bold;
+}
+
 a.button {
   -moz-border-radius: 30px;
   -webkit-border-radius: 30px;                     
