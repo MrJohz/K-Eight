@@ -2,10 +2,10 @@
 layout: default
 ---
 
-* hello
-{:toc}
 
-## Configuration
+> K-Eight is configured in YAML - obvious, easy-to-read, and easy to modify.
+
+## How do I configure this thing?
 
 K-Eight is configured with a `config.yml` file in the same directory as the program being run.  The file should be in standard [YAML markup][yaml].  This is an overview of all of the potential options and variations for a config file.
 
