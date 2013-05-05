@@ -3,7 +3,7 @@ layout: default
 ---
 
 
-> K-Eight is configured in YAML - obvious, easy-to-read, and easy to modify.
+> K-Eight is configured in YAML - it's obvious, readable, and easy to modify.  All you need is a text editor.
 
 ## How do I configure this thing?
 
