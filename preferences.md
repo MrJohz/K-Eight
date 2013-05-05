@@ -5,6 +5,7 @@ layout: default
 ## Configuration
 
 K-Eight is configured with a `config.yml` file in the same directory as the program being run.  The file should be in standard [YAML markup][yaml].  This is an overview of all of the potential options and variations for a config file.
+
 [yaml]: <http://www.yaml.org/spec/1.2/spec.html>
 
 ### Connection (required)            {#connection}
