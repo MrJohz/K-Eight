@@ -14,23 +14,29 @@ K-Eight is configured with a `config.yml` file in the same directory as the prog
 ### Connection (required)            {#connection}
 
 #### nick
+
 The nickname for your bot.  This parameter is required.
 
 #### server
+
 The server the bot should connect to.  As the server may contain odd characters, this should be enclosed in quote characters.  This parameter is required.
 
 #### port
+
 An integer or string representing the port on the server that K-Eight should connect to.  If it is not stated, or is blank or a null value, it defaults to 6667.
 
 #### password
+
 The password that the bot should use to connect to the server (not any particular channel).  If this is blank or a null value, the bot will attempt to connect without a password.
 
 #### channels
+
 A list of the channels that the bot should attempt to join when it connects.  As the pound symbol ('#') is assumed to be a comment in YAML in certain situations, the channel name should be quoted in full (`"#channelname"`) or the pound symbol can be ommitted.
 
 ### Admin (required)                 {#admin}
 
 #### owner
+
 Your name, nick, or some other identifier of your choosing.  This should allow others to contact you if the bot stops working or is disturbing others.  This parameter is required.
 
 admins
