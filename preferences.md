@@ -8,7 +8,7 @@ K-Eight is configured with a `config.yml` file in the same directory as the prog
 
 [yaml]: <http://www.yaml.org/spec/1.2/spec.html>
 
-- This will become a ToC
+* This will become a ToC
 {:toc}
 
 ### Connection (required)            {#connection}
