@@ -19,7 +19,7 @@ K-Eight's plugin system was reproduced with some variation from a post on LKJoel
 
 The biggest inspiration, as is probably obvious, was Sean B. Palmer's Phenny.  Indeed, K-Eight was originally a fast-but-basic drop-in replacement for a certain channel's Phenny when the server it was hosted on died.  (Phenny, and the later Jenni, had a tendency to run slowly on our machines).  The ability to write plugins with just a simple function was extremely important to me.
 
-If I'm talking about K-Eight's routes, I should also thank Solm, whose Ruby bot inspired my overly competitive ego to attempt to best his efforts.
+If I'm talking about K-Eight's roots, I should also thank Solm, whose Ruby bot inspired my overly competitive ego to attempt to best his efforts.
 
 ## Anyone else?
 
