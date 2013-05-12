@@ -39,10 +39,11 @@ from tools import config, log, persist
 from tools import plugin_imports as plugins
 
 ## Constants
-INFO_IRC_EVENTS = {'JOIN': 'Joined channel {event.target}',
-                   'PART': 'Left channel {event.target}'}
-
-DEBUG_IRC_EVENTS = {}
+INFO_SELF_IRC_EVENTS = {'JOIN': 'Joined channel {event.target}',
+                        'PART': 'Left channel {event.target}'}
+DEBUG_SELF_IRC_EVENTS = {}
+INFO_OTHER_IRC_EVENTS = {'KICK': 'Kicked from {event.target} by {event.source}'}
+DEBUG_OTHER_IRC_EVENTS = {}
 
 ## Some custom handlers
 class UpdateListsHandler(events.ReplyListener):
@@ -459,16 +460,27 @@ class Keight(bot.SimpleBot):
 
     def on_any(self, event):
         if event.source == self.nick:
-            for cmd, msg in INFO_IRC_EVENTS.items():
+            for cmd, msg in INFO_SELF_IRC_EVENTS.items():
                 if event.command == cmd:
                     self.logger.info(msg, tags=['system'], keight=self, event=event)
-            for cmd, msg in DEBUG_IRC_EVENTS.items():
+            for cmd, msg in DEBUG_SELF_IRC_EVENTS.items():
                 if event.command == cmd:
                     self.logger.debug(msg, tags=['system'], keight=self, event=event)
+        elif event.params and self.nick == event.params[0]:
+            for cmd, msg in INFO_OTHER_IRC_EVENTS.items():
+                if event.command == cmd:
+                    self.logger.info(msg, tags=['system'], keight=self, event=event)
+            for cmd, msg in DEBUG_OTHER_IRC_EVENTS.items():
+                if event.command == cmd:
+                    self.logger.debug(msg, tags=['system'], keight=self, event=event)
+                    
         for cmd, func in self.commands['cmd']:
             if fnmatch.fnmatch(event.command, cmd):
-                ret = '<command event error> {}: {}'.format(type(e).__name__, str(e))
-                self.logger.error(ret, tags=['system'])
+                try:
+                    ret = func(self, event)
+                except Exception as e:
+                    ret = '<command event error> {}: {}'.format(type(e).__name__, str(e))
+                    self.logger.error(ret, tags=['system'])
             
 if __name__ == "__main__":
     from tools import clopt
