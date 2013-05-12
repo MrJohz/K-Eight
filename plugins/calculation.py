@@ -1,5 +1,6 @@
-from tools.web import urllib
+import urllib, urllib2, re
 from tools import plugin
+import HTMLParser
 
 @plugin.alias('c')
 def do_calculate(keight, event):
@@ -56,7 +57,69 @@ def do_wa(keight, event):
         return answer
     else: return "I couldn't find anything, sorry."
 
+PYTHON_CODE = """
+import code
+console = code.InteractiveConsole()
 
+def prettify_return(code, console=console):
+    print "Snippet run by codepad.org for K-Eight (http://mrjohz.github.io/K-Eight/)"
+    print '-' * 10
+    answer = console.push(code)
+    print '-' * 10
+    print answer
+
+runcode = r'''
+{code}
+'''.strip()
+
+prettify_return(runcode)
+""".strip()
+
+RE_FOR_CODE = re.compile(r'''
+(.*?)Snippet run by codepad\.org for K-Eight.*?
+----------(.*)
+----------
+(False|True)
+'''.strip(), flags=re.DOTALL)
+
+class CodepadParser(HTMLParser.HTMLParser):
+    def __init__(self):
+        HTMLParser.HTMLParser.__init__(self)
+        self.tag_rank = []
+        
+    def handle_starttag(self, tag, attrs):
+        self.tag_rank.append(tag)
+    
+    def handle_endtag(self, tag):
+        if tag in self.tag_rank:
+            self.tag_rank.remove(tag)
+    
+    def handle_data(self, data):
+        if self.tag_rank[-3:] == ['td', 'div', 'pre']:
+            self.code = data.strip()
+
+@plugin.alias('py')
 def do_python(keight, event):
     """Runs a snippet of code through a python interpreter using codepad.org"""
-    pass
+    runcode = event.args
+    codepad_message = PYTHON_CODE.format(code=runcode)
+    data = urllib.urlencode({'lang': 'Python',
+                             'code': codepad_message,
+                             'private': 'True',
+                             'run': 'True',
+                             'submit': 'Submit'})
+    request = urllib2.Request('http://codepad.org/', data=data)
+    response = urllib2.urlopen(request)
+    parser = CodepadParser()
+    parser.feed(response.read())
+    code = parser.code
+    try:
+        error, printout, answer = RE_FOR_CODE.search(code).groups()
+    except AttributeError:
+        return "An unexpected error occured. (calculation.do_python)"
+    if error != '':
+        return error.strip().split('\n')[-1]
+    elif answer.strip() == "True":
+        return "SyntaxError - .py command cannot take potentially multiple lines of input."
+    else:
+        return printout.strip().split('\n')[0]
