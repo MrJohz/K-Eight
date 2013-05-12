@@ -112,6 +112,8 @@ class PluginFunction(object):
             self._cmds.append(function.cmd)     # Compatibility
         if hasattr(function, 'private'):       # Compatibility
             self._private = function.private   # Compatibility
+        
+        self._doc = function.__doc__
     
     def aliases(self):
         for alias in self._aliases:
@@ -151,6 +153,12 @@ class PluginFunction(object):
     
     def private(self):
         return self._private
+    
+    def add_doc(self, documentation):
+        self._doc = documentation
+    
+    def doc(self):
+        return self._doc
     
     def __call__(self, *args):
         return self._function(*args)

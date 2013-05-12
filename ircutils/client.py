@@ -31,10 +31,10 @@ class SimpleClient(object):
     version = (0,1,3)
     custom_listeners = {}
     
-    def __init__(self, nick, mode="+B", auto_handle=True):
+    def __init__(self, nick, real_name="A Python IRC Bot by Johz", mode="+B", auto_handle=True):
         self.nickname = nick
         self.user = nick
-        self.real_name = self.software
+        self.real_name = real_name
         self.filter_formatting = True
         self.channels = collections.defaultdict(protocol.Channel)
         self.events = events.EventDispatcher()

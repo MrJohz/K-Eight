@@ -18,7 +18,7 @@ USAGE: .roll [<m>=1]d<n>
 ==> Rolls <m> <n>-sided dice (dnd notation)"""
     msg = event.args.lower()
     if not msg:
-        return "{}: You rolled {}".format(event.source, random.randint(1,6))
+        return "{}: You rolled a {}".format(event.source, random.randint(1,6))
     match = DICE_REGEX.match(msg.strip())
     if match is not None:
         dice_no, sides, op, mod = match.groups()      # Un-group the match

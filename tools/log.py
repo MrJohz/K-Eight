@@ -68,7 +68,7 @@ class Message(object):
         self.raw_message = message
         self.message = message.format(*args, **kwargs)
         self.level = level
-        self.datetime = datetime.datetime.now()
+        self.datetime = datetime.datetime.today()
     
     def args(self):
         new_dict = {}

@@ -12,27 +12,32 @@ def do_quit(keight, event):
 ## HELP
 def do_help(keight, event):
     """General help documentation."""
+    is_ident = keight.get_account(event.source) in keight.admins
     msg = event.message.split(' ', 1)
     try:
         command = msg[1].strip()
     except IndexError:
         if event.private:
-            commands = (i for i, j in keight.commands['command'] if not j.private())
-            commands = (i for i,j in keight.commands['command'])
-            return ("Commands recognised: " + ', '.join(commands),
+            funcs = []
+            for name, func in keight.commands['command']:
+                if func.private() and not is_ident:
+                    continue
+                funcs.append('/'.join(func.aliases()))
+            return ("Commands recognised: " + ', '.join(set(funcs)),
                     "Use .help <command> for more instructions.")
         else:
             msg  = "Hello.  I'm {}.  I'm a bot designed by Johz and "
             msg += "operated by {}.\n"
             msg += "For a list of commands, use .help in private."
             return msg.format(keight.nick, keight.owner)
-
-    if not command in keight.commands:
+    
+    commands = dict(keight.commands['command'])
+    if not command in commands:
         return "Help on command {}: That's not a command.".format(command)
     else:
-        msg = "Help on command {}: {}"
-        if keight.commands[command].__doc__:
-            return msg.format(command, keight.commands[command].__doc__)
+        msg = "Help on command {}:\n {}"
+        if commands[command].doc():
+            return msg.format(command, commands[command].doc())
         else:
             return msg.format(command, "This command doesn't appear to have "
                                        "any documentation.")

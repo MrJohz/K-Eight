@@ -170,13 +170,12 @@ def re_any(keight, event):
     del message_db[event.source.lower().strip()]
     if messages:
         for message in messages:
-            timestr = message['time'].strftime('%I:%M%p %Z')
+            timestr = message['time'].strftime('%d-%m-%y %H:%M:%SZ')
             datestr = message['time'].strftime('%a %d %b %Y')
-            m  = "{sendee}: {sender} told me to {cmd} you {message} "
-            m += "at {time} on {date}"
+            m = "[{timestr}] <{sender}> .{cmd} {sendee} {message}"
             m  = m.format(sendee=event.source, sender=message['sender'],
-                         time=timestr, message=message['message'],
-                         date=datestr, cmd=message['command'])
+                         timestr=timestr, message=message['message'],
+                         cmd=message['command'])
             retMes.append(m)
     if retMes:
         return retMes
