@@ -29,12 +29,13 @@ import os
 import pprint
 import re
 import sys
+
 import threading, Queue
 
 from collections import Counter
 
 from ircutils import bot, events, format
-from tools import persist, config, log
+from tools import config, log, persist
 from tools import plugin_imports as plugins
 
 ## Constants
@@ -322,7 +323,7 @@ class Keight(bot.SimpleBot):
         if not isinstance(time, datetime.datetime):
             txt  = "'time' value must be of type datetime.datetime, recieved"
             txt += "value of type {}".format(type(time))
-            raise TypeError(txt)
+            raise TypeError(txt)  # This will be caught in do_command
         
         self._queue.put((time, func_name, arg), False)
     
@@ -333,10 +334,10 @@ class Keight(bot.SimpleBot):
             else:
                 return
         try:
-            retVal = func(self, time, func_name, arg)
+            ret = func(self, time, func_name, arg)
         except Exception as e:
-            retVal = '{}: {}'.format(type(e).__name__, str(e))
-            self.logger.error(retVal, tags=['system'])
+            ret = '<time event error> {}: {}'.format(type(e).__name__, str(e))
+            self.logger.error(ret, tags=['system'])
 
     def do_command(self, event):
         try:
@@ -371,6 +372,9 @@ class Keight(bot.SimpleBot):
                     retVal = func(self, event)
                 except Exception as e:
                     retVal = 'Oh noes!  {}: {}'.format(type(e).__name__, str(e))
+                    ret = '<regex event error> {}: {}'.format(type(e).__name__, str(e))
+                    self.logger.error(ret, tags=['system'])
+                    
             else:
                 continue
             
@@ -411,6 +415,8 @@ class Keight(bot.SimpleBot):
                 retVal = retFunc(self, event)
             except Exception as e:
                 retVal = 'Oh noes!  {}: {}'.format(type(e).__name__, str(e))
+                ret = '<event error> {}: {}'.format(type(e).__name__, str(e))
+                self.logger.error(ret, tags=['system'])
             if isinstance(retVal, basestring):
                 retVal = str(retVal)
                 self._send_linebr_message(target, retVal)
@@ -461,7 +467,8 @@ class Keight(bot.SimpleBot):
                     self.logger.debug(msg, tags=['system'], keight=self, event=event)
         for cmd, func in self.commands['cmd']:
             if fnmatch.fnmatch(event.command, cmd):
-                func(self, event)
+                ret = '<command event error> {}: {}'.format(type(e).__name__, str(e))
+                self.logger.error(ret, tags=['system'])
             
 if __name__ == "__main__":
     from tools import clopt
