@@ -43,3 +43,6 @@ persistence/*
 
 # And anything in the log folder
 logs/*
+
+# And especially not the dumps
+tools/nstoolkit/dumps/*

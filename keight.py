@@ -1,4 +1,4 @@
-#! python
+#!/usr/bin/env python
 
 """
 K-Eight - an extendable python IRC bot by Johz.
@@ -295,7 +295,7 @@ class Keight(bot.SimpleBot):
     
     def get_account(self, user):
         if not self._use_ident:
-            return True
+            return user
         self.check_only(user)
         userObj = self.user_dict.get(user.lower(), None)
         if userObj:
