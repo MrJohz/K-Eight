@@ -70,9 +70,6 @@ do_b = do_boneyard
 def do_approx(keight, event):
     region = event.message[7:].strip()
     targ = event.source if event.private else event.target
-    if not event.target == '#udl-cmd':
-      pass
-        #keight.send_message('#udl-cmd', "{} is using approx on {} in {}".format(event.source, region, targ))
     if majorlength is not None:
         update_time = approx(region, False, majorlength)
         if update_time == -1:
@@ -92,8 +89,6 @@ def do_approx(keight, event):
 def do_minor(keight, event):
     region = event.args.strip()
     targ = event.source if event.private else event.target
-    if not event.target == '#udl-cmd':
-        keight.send_message('#udl-cmd', "{} is using minor on {} in {}".format(event.source, region, targ))
     if minorlength is not None:
         update_time = approx(region, False, minorlength)
         if update_time == -1:
